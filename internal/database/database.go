@@ -74,16 +74,7 @@ func (db *DB) SavePlace(place *models.Place) error {
 
 	categoriesJSON, _ := json.Marshal(place.Categories)
 
-	placeData := struct {
-		Photos      []models.Photo  `json:"photos"`
-		Reviews     []models.Review `json:"reviews"`
-		Rating      float32         `json:"rating"`
-		UserRatings int             `json:"user_ratings"`
-		PriceLevel  int             `json:"price_level"`
-		Hours       string          `json:"hours"`
-		Phone       string          `json:"phone"`
-		Website     string          `json:"website"`
-	}{
+	data := placeData{
 		Photos:      place.Photos,
 		Reviews:     place.Reviews,
 		Rating:      place.Rating,
@@ -93,7 +84,7 @@ func (db *DB) SavePlace(place *models.Place) error {
 		Phone:       place.Phone,
 		Website:     place.Website,
 	}
-	dataJSON, _ := json.Marshal(placeData)
+	dataJSON, _ := json.Marshal(data)
 
 	tx, err := db.conn.Begin()
 	if err != nil {
@@ -129,51 +120,51 @@ func (db *DB) SavePlace(place *models.Place) error {
 	return tx.Commit()
 }
 
-func (db *DB) GetPlace(id string) (*models.Place, error) {
+type placeData struct {
+	Photos      []models.Photo  `json:"photos"`
+	Reviews     []models.Review `json:"reviews"`
+	Rating      float32         `json:"rating"`
+	UserRatings int             `json:"user_ratings"`
+	PriceLevel  int             `json:"price_level"`
+	Hours       string          `json:"hours"`
+	Phone       string          `json:"phone"`
+	Website     string          `json:"website"`
+}
+
+func scanPlace(scanner interface {
+	Scan(dest ...interface{}) error
+}) (*models.Place, error) {
 	var place models.Place
 	var categoriesJSON, dataJSON string
 	var tagsJSON, customFieldsJSON sql.NullString
 
-	err := db.conn.QueryRow(`
-		SELECT
-			p.id, p.place_id, p.name, p.address, p.lat, p.lng,
-			p.categories, p.data, p.created_at, p.updated_at,
-			ud.notes, ud.tags, ud.custom_fields
-		FROM places p
-		LEFT JOIN user_data ud ON p.id = ud.place_id
-		WHERE p.id = ?`, id).Scan(
+	err := scanner.Scan(
 		&place.ID, &place.PlaceID, &place.Name, &place.Address,
 		&place.Coordinates.Lat, &place.Coordinates.Lng,
 		&categoriesJSON, &dataJSON, &place.CreatedAt, &place.UpdatedAt,
 		&place.UserNotes, &tagsJSON, &customFieldsJSON)
-
 	if err != nil {
 		return nil, err
 	}
 
+	return unmarshalPlace(&place, categoriesJSON, dataJSON, tagsJSON, customFieldsJSON)
+}
+
+func unmarshalPlace(place *models.Place, categoriesJSON, dataJSON string, tagsJSON, customFieldsJSON sql.NullString) (*models.Place, error) {
 	if err := json.Unmarshal([]byte(categoriesJSON), &place.Categories); err != nil {
 		place.Categories = []string{}
 	}
 
-	var placeData struct {
-		Photos      []models.Photo  `json:"photos"`
-		Reviews     []models.Review `json:"reviews"`
-		Rating      float32         `json:"rating"`
-		UserRatings int             `json:"user_ratings"`
-		PriceLevel  int             `json:"price_level"`
-		Hours       string          `json:"hours"`
-		Phone       string          `json:"phone"`
-		Website     string          `json:"website"`
-	}
-	if err := json.Unmarshal([]byte(dataJSON), &placeData); err == nil {
-		place.Photos = placeData.Photos
-		place.Reviews = placeData.Reviews
-		place.Rating = placeData.Rating
-		place.UserRatings = placeData.UserRatings
-		place.PriceLevel = placeData.PriceLevel
-		place.Hours = placeData.Hours
-		place.Phone = placeData.Phone
-		place.Website = placeData.Website
+	var data placeData
+	if err := json.Unmarshal([]byte(dataJSON), &data); err == nil {
+		place.Photos = data.Photos
+		place.Reviews = data.Reviews
+		place.Rating = data.Rating
+		place.UserRatings = data.UserRatings
+		place.PriceLevel = data.PriceLevel
+		place.Hours = data.Hours
+		place.Phone = data.Phone
+		place.Website = data.Website
 	}
 
 	if tagsJSON.Valid {
@@ -187,7 +178,20 @@ func (db *DB) GetPlace(id string) (*models.Place, error) {
 		}
 	}
 
-	return &place, nil
+	return place, nil
+}
+
+func (db *DB) GetPlace(id string) (*models.Place, error) {
+	row := db.conn.QueryRow(`
+		SELECT
+			p.id, p.place_id, p.name, p.address, p.lat, p.lng,
+			p.categories, p.data, p.created_at, p.updated_at,
+			ud.notes, ud.tags, ud.custom_fields
+		FROM places p
+		LEFT JOIN user_data ud ON p.id = ud.place_id
+		WHERE p.id = ?`, id)
+
+	return scanPlace(row)
 }
 
 func (db *DB) ListPlaces(limit, offset int) ([]*models.Place, error) {
@@ -207,56 +211,11 @@ func (db *DB) ListPlaces(limit, offset int) ([]*models.Place, error) {
 
 	var places []*models.Place
 	for rows.Next() {
-		var place models.Place
-		var categoriesJSON, dataJSON string
-		var tagsJSON, customFieldsJSON sql.NullString
-
-		err := rows.Scan(
-			&place.ID, &place.PlaceID, &place.Name, &place.Address,
-			&place.Coordinates.Lat, &place.Coordinates.Lng,
-			&categoriesJSON, &dataJSON, &place.CreatedAt, &place.UpdatedAt,
-			&place.UserNotes, &tagsJSON, &customFieldsJSON)
+		place, err := scanPlace(rows)
 		if err != nil {
 			return nil, err
 		}
-
-		if err := json.Unmarshal([]byte(categoriesJSON), &place.Categories); err != nil {
-			place.Categories = []string{}
-		}
-
-		var placeData struct {
-			Photos      []models.Photo  `json:"photos"`
-			Reviews     []models.Review `json:"reviews"`
-			Rating      float32         `json:"rating"`
-			UserRatings int             `json:"user_ratings"`
-			PriceLevel  int             `json:"price_level"`
-			Hours       string          `json:"hours"`
-			Phone       string          `json:"phone"`
-			Website     string          `json:"website"`
-		}
-		if err := json.Unmarshal([]byte(dataJSON), &placeData); err == nil {
-			place.Photos = placeData.Photos
-			place.Reviews = placeData.Reviews
-			place.Rating = placeData.Rating
-			place.UserRatings = placeData.UserRatings
-			place.PriceLevel = placeData.PriceLevel
-			place.Hours = placeData.Hours
-			place.Phone = placeData.Phone
-			place.Website = placeData.Website
-		}
-
-		if tagsJSON.Valid {
-			if err := json.Unmarshal([]byte(tagsJSON.String), &place.UserTags); err != nil {
-				place.UserTags = []string{}
-			}
-		}
-		if customFieldsJSON.Valid {
-			if err := json.Unmarshal([]byte(customFieldsJSON.String), &place.CustomFields); err != nil {
-				place.CustomFields = make(map[string]interface{})
-			}
-		}
-
-		places = append(places, &place)
+		places = append(places, place)
 	}
 
 	return places, nil
@@ -284,56 +243,11 @@ func (db *DB) SearchPlaces(query string) ([]*models.Place, error) {
 
 	var places []*models.Place
 	for rows.Next() {
-		var place models.Place
-		var categoriesJSON, dataJSON string
-		var tagsJSON, customFieldsJSON sql.NullString
-
-		err := rows.Scan(
-			&place.ID, &place.PlaceID, &place.Name, &place.Address,
-			&place.Coordinates.Lat, &place.Coordinates.Lng,
-			&categoriesJSON, &dataJSON, &place.CreatedAt, &place.UpdatedAt,
-			&place.UserNotes, &tagsJSON, &customFieldsJSON)
+		place, err := scanPlace(rows)
 		if err != nil {
 			return nil, err
 		}
-
-		if err := json.Unmarshal([]byte(categoriesJSON), &place.Categories); err != nil {
-			place.Categories = []string{}
-		}
-
-		var placeData struct {
-			Photos      []models.Photo  `json:"photos"`
-			Reviews     []models.Review `json:"reviews"`
-			Rating      float32         `json:"rating"`
-			UserRatings int             `json:"user_ratings"`
-			PriceLevel  int             `json:"price_level"`
-			Hours       string          `json:"hours"`
-			Phone       string          `json:"phone"`
-			Website     string          `json:"website"`
-		}
-		if err := json.Unmarshal([]byte(dataJSON), &placeData); err == nil {
-			place.Photos = placeData.Photos
-			place.Reviews = placeData.Reviews
-			place.Rating = placeData.Rating
-			place.UserRatings = placeData.UserRatings
-			place.PriceLevel = placeData.PriceLevel
-			place.Hours = placeData.Hours
-			place.Phone = placeData.Phone
-			place.Website = placeData.Website
-		}
-
-		if tagsJSON.Valid {
-			if err := json.Unmarshal([]byte(tagsJSON.String), &place.UserTags); err != nil {
-				place.UserTags = []string{}
-			}
-		}
-		if customFieldsJSON.Valid {
-			if err := json.Unmarshal([]byte(customFieldsJSON.String), &place.CustomFields); err != nil {
-				place.CustomFields = make(map[string]interface{})
-			}
-		}
-
-		places = append(places, &place)
+		places = append(places, place)
 	}
 
 	return places, nil

@@ -68,7 +68,7 @@ func TestGetPlaceDetails_Success(t *testing.T) {
 		assert.Contains(t, r.URL.Query().Get("fields"), "place_id,name,rating")
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(mockResponse)
+		_ = json.NewEncoder(w).Encode(mockResponse)
 	}))
 	defer server.Close()
 
@@ -113,7 +113,7 @@ func TestGetPlaceDetails_InvalidStatus(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(mockResponse)
+		_ = json.NewEncoder(w).Encode(mockResponse)
 	}))
 	defer server.Close()
 
@@ -134,7 +134,7 @@ func TestDownloadPhoto_Success(t *testing.T) {
 		assert.Equal(t, "test-key", r.URL.Query().Get("key"))
 
 		w.Header().Set("Content-Type", "image/jpeg")
-		w.Write(testPhotoData)
+		_, _ = w.Write(testPhotoData)
 	}))
 	defer server.Close()
 
