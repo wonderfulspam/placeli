@@ -170,6 +170,21 @@ func (m ReviewModel) updateDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.editField = "tags"
 		m.editValue = strings.Join(m.current.UserTags, ", ")
 
+	case "o":
+		m.mode = ReviewModeEdit
+		m.editField = "hours"
+		m.editValue = m.current.Hours
+
+	case "p":
+		m.mode = ReviewModeEdit
+		m.editField = "phone"
+		m.editValue = m.current.Phone
+
+	case "w":
+		m.mode = ReviewModeEdit
+		m.editField = "website"
+		m.editValue = m.current.Website
+
 	case "d":
 		return m, m.deletePlace()
 	}
@@ -217,6 +232,12 @@ func (m ReviewModel) saveEdit() tea.Cmd {
 				}
 				m.current.UserTags = tags
 			}
+		case "hours":
+			m.current.Hours = m.editValue
+		case "phone":
+			m.current.Phone = m.editValue
+		case "website":
+			m.current.Website = m.editValue
 		}
 
 		err := m.db.SavePlace(m.current)
@@ -331,6 +352,33 @@ func (m ReviewModel) viewDetail() string {
 		content += fmt.Sprintf("%s %s\n", fieldStyle.Render("Website:"), valueStyle.Render(m.current.Website))
 	}
 
+	if m.current.Hours != "" {
+		content += fmt.Sprintf("%s %s\n", fieldStyle.Render("Hours:"), valueStyle.Render(m.current.Hours))
+	}
+
+	// Photos
+	if len(m.current.Photos) > 0 {
+		content += fmt.Sprintf("%s %d photos available\n",
+			fieldStyle.Render("Photos:"), len(m.current.Photos))
+	}
+
+	// Reviews
+	if len(m.current.Reviews) > 0 {
+		content += fmt.Sprintf("%s %d reviews\n",
+			fieldStyle.Render("Reviews:"), len(m.current.Reviews))
+		// Show first review if available
+		if len(m.current.Reviews) > 0 {
+			review := m.current.Reviews[0]
+			reviewStars := strings.Repeat("⭐", review.Rating)
+			reviewText := review.Text
+			if len(reviewText) > 80 {
+				reviewText = reviewText[:77] + "..."
+			}
+			content += fmt.Sprintf("  %s %s: \"%s\"\n",
+				reviewStars, review.Author, reviewText)
+		}
+	}
+
 	// User data
 	content += "\n" + fieldStyle.Render("USER DATA") + "\n"
 
@@ -351,7 +399,7 @@ func (m ReviewModel) viewDetail() string {
 	b.WriteString(box)
 
 	b.WriteString("\n\n")
-	help := helpStyle.Render("← → navigate • [n]otes • [t]ags • [d]elete • esc back • q quit")
+	help := helpStyle.Render("← → navigate • [n]otes • [t]ags • h[o]urs • [p]hone • [w]ebsite • [d]elete • esc back • q quit")
 	b.WriteString(help)
 
 	return b.String()
