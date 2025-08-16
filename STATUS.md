@@ -7,76 +7,93 @@
 **Features**: TUI, Export (CSV/JSON/GeoJSON/Markdown), Maps API, Web Interface
 **Quality**: >90% test coverage, linting, pre-commit hooks
 
-## 🚧 ACTIVE DEVELOPMENT
+## ✅ ALL ADVANCED FEATURES COMPLETED
 
-### 1. Sync Command - Intelligent Takeout Merging
+### 1. ~~Sync Command - Intelligent Takeout Merging~~ ✅ COMPLETED
 
 **Goal**: Allow users to periodically import new Takeout data without duplicates
 **Implementation**:
 
-- [ ] Create `cmd/placeli/sync.go` command
-- [ ] Add `imported_at` and `source_hash` fields to database
-- [ ] Implement duplicate detection based on place ID/coordinates
-- [ ] Create merge strategy: preserve user edits, update API data
-- [ ] Add conflict resolution options (--force, --merge, --skip)
-- [ ] Test with multiple Takeout exports
+- [x] Create `cmd/placeli/sync.go` command
+- [x] Add `imported_at` and `source_hash` fields to database
+- [x] Implement duplicate detection based on place ID/coordinates
+- [x] Create merge strategy: preserve user edits, update API data
+- [x] Add conflict resolution options (--force, --merge, --skip)
+- [x] Test with multiple Takeout exports
 
-### 2. Tag Management System
+### 2. ~~Tag Management System~~ ✅ COMPLETED
 
 **Goal**: Efficient batch operations for organizing places with tags
 **Implementation**:
 
-- [ ] Create `cmd/placeli/tags.go` command with subcommands
-- [ ] Add `tags list` - show all tags with counts
-- [ ] Add `tags rename <old> <new>` - batch rename
-- [ ] Add `tags delete <tag>` - remove tag from all places
-- [ ] Add `tags apply <tag> --filter=<query>` - batch apply
-- [ ] Update TUI to support multi-select for batch tagging
-- [ ] Add tag autocomplete in TUI
+- [x] Create `cmd/placeli/tags.go` command with subcommands
+- [x] Add `tags list` - show all tags with counts
+- [x] Add `tags rename <old> <new>` - batch rename
+- [x] Add `tags delete <tag>` - remove tag from all places
+- [x] Add `tags apply <tag> --filter=<query>` - batch apply
+- [x] Update TUI to support multi-select for batch tagging
+- [x] Add tag autocomplete in TUI
 
-### 3. Custom Fields
+### 3. ~~Custom Fields~~ ✅ COMPLETED
 
 **Goal**: User-defined metadata fields for specialized use cases
 **Implementation**:
 
-- [ ] Add `custom_fields` JSON column to places table
-- [ ] Create `cmd/placeli/fields.go` for field management
-- [ ] Add field types: text, number, date, boolean, list
-- [ ] Update TUI to display and edit custom fields
-- [ ] Add custom field support to export formats
-- [ ] Create field templates for common use cases
+- [x] Add `custom_fields` JSON column to places table
+- [x] Create `cmd/placeli/fields.go` for field management
+- [x] Add field types: text, number, date, boolean, list
+- [x] Update TUI to display and edit custom fields
+- [x] Add custom field support to export formats
+- [x] Create field templates for common use cases
 
-### 4. Multi-Source Import
+### 4. ~~Multi-Source Import~~ ✅ COMPLETED
 
 **Goal**: Import from Apple Maps, OpenStreetMap, and other services
 **Implementation**:
 
-- [ ] Create `internal/importer/sources/` package
-- [ ] Add Apple Maps KML/GPX parser
-- [ ] Add OpenStreetMap Overpass API integration
-- [ ] Add Foursquare/Swarm history import
-- [ ] Create unified import interface
-- [ ] Handle format-specific quirks and data mapping
+- [x] Create `internal/importer/sources/` package
+- [x] Add Apple Maps KML/GPX parser
+- [x] Add OpenStreetMap Overpass API integration
+- [x] Add Foursquare/Swarm history import
+- [x] Create unified import interface
+- [x] Handle format-specific quirks and data mapping
 
-### 5. Terminal Map View
+### 5. ~~Terminal Map View~~ ✅ COMPLETED
 
 **Goal**: ASCII-art map visualization in the terminal
 **Implementation**:
 
-- [ ] Create `internal/tui/mapview/` package
-- [ ] Use Unicode box-drawing characters for map
-- [ ] Implement zoom levels and pan controls
-- [ ] Add place markers with density clustering
-- [ ] Create mini-map for `list` command output
-- [ ] Add interactive map mode in TUI
+- [x] Create `internal/tui/mapview/` package
+- [x] Use Unicode box-drawing characters for map
+- [x] Implement zoom levels and pan controls
+- [x] Add place markers with density clustering
+- [x] Create mini-map for `list` command output
+- [x] Add interactive map mode in TUI
 
 ## 📊 PROJECT STATS
 
-**Lines of Code**: ~4,000+
+**Lines of Code**: ~8,000+ (doubled with advanced features)
 **Test Coverage**: >90%
-**Stack**: Go 1.21+, SQLite, Cobra CLI, Bubbletea TUI
+**Commands**: `import`, `sync`, `list`, `browse`, `review`, `export`, `enrich`, `web`, `map`, `tags`, `fields`, `imports`
+**Stack**: Go 1.21+, SQLite, Cobra CLI, Bubbletea TUI, Unicode graphics
+
+## 🏆 COMPLETION SUMMARY
+
+🎉 **ALL ADVANCED FEATURES SUCCESSFULLY IMPLEMENTED!**
+
+The placeli project now includes:
+- ✅ Intelligent sync with source hash deduplication
+- ✅ Comprehensive tag management system
+- ✅ Flexible custom fields with templates
+- ✅ Multi-source import (Apple Maps, OSM, Foursquare)
+- ✅ Terminal-based ASCII map visualization
 
 ## 🔄 UPDATE LOG
 
 - **2025-08-16**: Completed core features (import, TUI, export, enrichment, web)
-- **2025-08-16**: Started advanced features implementation
+- **2025-08-16**: Implemented sync command with intelligent duplicate merging
+- **2025-08-16**: Added tag management system with batch operations
+- **2025-08-16**: Created custom fields system with type support
+- **2025-08-16**: Built multi-source import framework
+- **2025-08-16**: Completed terminal map view with interactive controls
+- **2025-08-16**: 🏁 ALL ADVANCED FEATURES COMPLETED!
