@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/user/placeli/internal/importer"
+	"github.com/user/placeli/internal/logger"
 	"github.com/user/placeli/internal/models"
 )
 
@@ -51,10 +52,7 @@ Examples:
 			takeoutPath = abs
 		}
 
-		fmt.Printf("Syncing from: %s\n", takeoutPath)
-		if syncDryRun {
-			fmt.Println("DRY RUN: No changes will be made")
-		}
+		logger.Info("Starting sync", "path", takeoutPath, "dry_run", syncDryRun, "force", syncForce)
 
 		// Import places from takeout
 		newPlaces, err := importer.ImportFromTakeout(takeoutPath)
@@ -67,7 +65,7 @@ Examples:
 			return nil
 		}
 
-		fmt.Printf("Found %d places in takeout data\n\n", len(newPlaces))
+		logger.Info("Found places in takeout", "count", len(newPlaces))
 
 		// Sync with existing database
 		added, updated, skipped, err := syncPlaces(newPlaces, syncDryRun, syncForce)
@@ -76,12 +74,11 @@ Examples:
 		}
 
 		// Report results
-		fmt.Printf("\nSync complete:\n")
-		fmt.Printf("  Added: %d new places\n", added)
-		if syncForce {
-			fmt.Printf("  Updated: %d existing places\n", updated)
-		}
-		fmt.Printf("  Skipped: %d duplicates\n", skipped)
+		logger.Info("Sync complete", 
+			"added", added, 
+			"updated", updated, 
+			"skipped", skipped,
+			"force", syncForce)
 
 		if syncDryRun {
 			fmt.Println("\nRun without --dry-run to apply changes")

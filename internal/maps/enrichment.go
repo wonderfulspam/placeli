@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/user/placeli/internal/database"
+	"github.com/user/placeli/internal/logger"
 	"github.com/user/placeli/internal/models"
 )
 
@@ -76,14 +77,14 @@ func (s *EnrichmentService) EnrichAllPlacesWithLimit(ctx context.Context, opts E
 	for _, place := range places {
 		if place.PlaceID == "" {
 			skipped++
-			fmt.Printf("Skipping %s (no PlaceID)\n", place.Name)
+			logger.Debug("Skipping place without PlaceID", "name", place.Name)
 			continue
 		}
 
-		fmt.Printf("Enriching %s...\n", place.Name)
+		logger.Debug("Enriching place", "name", place.Name, "place_id", place.PlaceID)
 		if err := s.EnrichPlace(ctx, place, opts); err != nil {
 			failed++
-			fmt.Printf("Failed to enrich %s: %v\n", place.Name, err)
+			logger.Warn("Failed to enrich place", "name", place.Name, "error", err)
 			continue
 		}
 
@@ -91,8 +92,10 @@ func (s *EnrichmentService) EnrichAllPlacesWithLimit(ctx context.Context, opts E
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	fmt.Printf("Enrichment complete: %d enriched, %d skipped, %d failed\n",
-		enriched, skipped, failed)
+	logger.Info("Enrichment complete", 
+		"enriched", enriched, 
+		"skipped", skipped, 
+		"failed", failed)
 	return nil
 }
 
