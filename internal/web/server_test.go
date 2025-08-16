@@ -21,18 +21,18 @@ func setupTestServer(t *testing.T) (*Server, *database.DB) {
 	require.NoError(t, err)
 
 	place := &models.Place{
-		ID:        "test-place-1",
-		PlaceID:   "test-google-place-id",
-		Name:      "Test Place",
-		Address:   "123 Test St",
+		ID:      "test-place-1",
+		PlaceID: "test-google-place-id",
+		Name:    "Test Place",
+		Address: "123 Test St",
 		Coordinates: models.Coordinates{
 			Lat: 37.7749,
 			Lng: -122.4194,
 		},
-		Rating:    4.5,
+		Rating:     4.5,
 		Categories: []string{"Restaurant"},
-		UserNotes: "Great food",
-		UserTags:  []string{"favorite"},
+		UserNotes:  "Great food",
+		UserTags:   []string{"favorite"},
 	}
 	err = db.SavePlace(place)
 	require.NoError(t, err)
@@ -98,7 +98,7 @@ func TestHandleAPIPlaces(t *testing.T) {
 			server.handleAPIPlaces(w, req)
 
 			assert.Equal(t, tt.wantCode, w.Code)
-			
+
 			if tt.wantCode == http.StatusOK {
 				var places []*models.Place
 				err := json.Unmarshal(w.Body.Bytes(), &places)
@@ -195,7 +195,7 @@ func TestNewServer(t *testing.T) {
 
 	server, err := NewServer(db, 8080, "api-key")
 	require.NoError(t, err)
-	
+
 	assert.NotNil(t, server)
 	assert.Equal(t, 8080, server.port)
 	assert.Equal(t, "api-key", server.apiKey)

@@ -39,6 +39,9 @@ type BrowseModel struct {
 	message     string
 	searchMode  bool
 	searchInput string
+	tagMode     bool
+	tagInput    string
+	tagAction   string // "add" or "remove"
 }
 
 func NewBrowseModel(db *database.DB) BrowseModel {
@@ -96,9 +99,21 @@ func (m BrowseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case errMsg:
 		m.message = fmt.Sprintf("Error: %v", msg.err)
 
+	case tagAppliedMsg:
+		action := "added to"
+		if msg.action == "remove" {
+			action = "removed from"
+		}
+		m.message = fmt.Sprintf("Tag '%s' %s %d places", msg.tag, action, msg.count)
+		// Clear selection after applying tags
+		m.selected = make(map[int]struct{})
+
 	case tea.KeyMsg:
 		if m.searchMode {
 			return m.updateSearch(msg)
+		}
+		if m.tagMode {
+			return m.updateTag(msg)
 		}
 
 		switch msg.String() {
@@ -147,6 +162,28 @@ func (m BrowseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "r":
 			return m, m.loadPlaces()
+
+		case "t":
+			// Add tag to selected places
+			if len(m.selected) > 0 {
+				m.tagMode = true
+				m.tagAction = "add"
+				m.tagInput = ""
+				m.message = ""
+			} else {
+				m.message = "Select places first (space/enter to select)"
+			}
+
+		case "T":
+			// Remove tag from selected places
+			if len(m.selected) > 0 {
+				m.tagMode = true
+				m.tagAction = "remove"
+				m.tagInput = ""
+				m.message = ""
+			} else {
+				m.message = "Select places first (space/enter to select)"
+			}
 		}
 	}
 
@@ -188,6 +225,36 @@ func (m BrowseModel) updateSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m BrowseModel) updateTag(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "ctrl+c":
+		return m, tea.Quit
+
+	case "esc":
+		m.tagMode = false
+		m.tagInput = ""
+
+	case "enter":
+		m.tagMode = false
+		if m.tagInput != "" {
+			return m, m.applyTagToSelected(m.tagInput, m.tagAction)
+		}
+
+	case "backspace":
+		if len(m.tagInput) > 0 {
+			m.tagInput = m.tagInput[:len(m.tagInput)-1]
+		}
+
+	default:
+		// Add printable characters to tag input
+		if len(msg.String()) == 1 && msg.String() >= " " && msg.String() <= "~" {
+			m.tagInput += msg.String()
+		}
+	}
+
+	return m, nil
+}
+
 func (m BrowseModel) View() string {
 	var b strings.Builder
 
@@ -203,6 +270,17 @@ func (m BrowseModel) View() string {
 		b.WriteString("(enter to search, esc to cancel)\n\n")
 	} else if m.search != "" {
 		b.WriteString(fmt.Sprintf("🔍 Active search: %s (press 'c' to clear)\n\n", m.search))
+	}
+
+	// Tag interface
+	if m.tagMode {
+		action := "Add"
+		if m.tagAction == "remove" {
+			action = "Remove"
+		}
+		tagPrompt := fmt.Sprintf("%s tag: %s_", action, m.tagInput)
+		b.WriteString(fmt.Sprintf("🏷️  %s\n", tagPrompt))
+		b.WriteString(fmt.Sprintf("(enter to %s tag to %d places, esc to cancel)\n\n", strings.ToLower(action), len(m.selected)))
 	}
 
 	// Message
@@ -241,6 +319,9 @@ func (m BrowseModel) View() string {
 			if len(place.Categories) > 0 {
 				line += fmt.Sprintf("\n     🏷️  %s", strings.Join(place.Categories, ", "))
 			}
+			if len(place.UserTags) > 0 {
+				line += fmt.Sprintf("\n     🔖 %s", strings.Join(place.UserTags, ", "))
+			}
 
 			if i == m.cursor {
 				b.WriteString(selectedItemStyle.Render(line))
@@ -255,12 +336,52 @@ func (m BrowseModel) View() string {
 	if m.searchMode {
 		help := helpStyle.Render("Type to search • enter confirm • esc cancel")
 		b.WriteString(fmt.Sprintf("\n%s", help))
+	} else if m.tagMode {
+		help := helpStyle.Render("Type tag name • enter confirm • esc cancel")
+		b.WriteString(fmt.Sprintf("\n%s", help))
 	} else {
-		help := helpStyle.Render("↑/k up • ↓/j down • enter/space select • g top • G bottom • / search • c clear • r refresh • q quit")
+		help := helpStyle.Render("↑/k up • ↓/j down • enter/space select • t add tag • T remove tag • g top • G bottom • / search • c clear • r refresh • q quit")
 		b.WriteString(fmt.Sprintf("\n%s", help))
 	}
 
 	return b.String()
+}
+
+func (m BrowseModel) applyTagToSelected(tag, action string) tea.Cmd {
+	return tea.Cmd(func() tea.Msg {
+		count := 0
+		for i := range m.selected {
+			if i < len(m.places) {
+				place := m.places[i]
+
+				if action == "add" {
+					if !place.HasTag(tag) {
+						place.AddTag(tag)
+						if err := m.db.SavePlace(place); err != nil {
+							return errMsg{err}
+						}
+						count++
+					}
+				} else if action == "remove" {
+					if place.HasTag(tag) {
+						place.RemoveTag(tag)
+						if err := m.db.SavePlace(place); err != nil {
+							return errMsg{err}
+						}
+						count++
+					}
+				}
+			}
+		}
+
+		return tagAppliedMsg{tag: tag, action: action, count: count}
+	})
+}
+
+type tagAppliedMsg struct {
+	tag    string
+	action string
+	count  int
 }
 
 func RunBrowse(db *database.DB) error {
