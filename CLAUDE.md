@@ -15,16 +15,19 @@ placeli is a terminal-based Google Maps list manager written in Go. It provides 
 3. Implement code until tests pass
 4. Leverage Go's test caching - always run all tests
 
-### Task Completion Checklist
+### Task Completion
 
-Always run these commands before considering a task complete:
+Always run the check script before considering a task complete:
 
 ```bash
-go fmt ./...       # Format all code
-go vet ./...       # Check for common issues
-go test ./...      # Run all tests
-go mod tidy        # Clean up module dependencies
-golangci-lint run  # Run additional linters if available
+.claude/check  # Runs fmt, vet, test, mod tidy, golangci-lint, and git checks
+```
+
+This script automatically runs all quality checks and provides helpful feedback.
+
+To enable automatic pre-commit checks:
+```bash
+git config core.hooksPath .githooks
 ```
 
 ### Git Commit Practices

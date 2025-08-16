@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# Git pre-commit hook that runs the .claude/check script
+# To enable: git config core.hooksPath .githooks
+
+exec .claude/check
