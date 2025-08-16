@@ -47,9 +47,20 @@ Update this file as features are completed or when significant progress is made.
 - **CLI Export Command** - User-friendly export command with format validation
 - **Comprehensive Testing** - Full test coverage for all export formats
 
+### Data Enrichment System
+
+- **Google Maps API Integration** - Fetch additional place details from Google Maps
+- **Photo Download** - Download and cache place photos locally with path management
+- **Review Fetching** - Get latest reviews and ratings from Google Maps
+- **Business Information** - Update hours, phone numbers, websites, and ratings
+- **CLI Enrich Command** - User-friendly enrichment with flexible options
+- **Rate Limiting** - Built-in delays and error handling for API compliance
+- **Selective Enrichment** - Enrich individual places or entire database
+- **Data Merging** - Intelligent merging that preserves user-added data
+
 ### Quality Assurance
 
-- **Test Coverage** - Comprehensive tests for models, database, importer, and export
+- **Test Coverage** - Comprehensive tests for models, database, importer, export, and maps
   packages
 - **Linting** - golangci-lint configuration and enforcement
 - **Code Quality** - Pre-commit hooks with `.claude/check` script
@@ -78,12 +89,13 @@ No active development currently.
 - [x] **CLI Export Command** - User-friendly export command with format validation
 - [ ] **Custom Templates** - User-configurable export templates (future enhancement)
 
-### 3. Data Enrichment (Medium Priority)
+### 2. ~~Data Enrichment~~ ✅ COMPLETED
 
-- [ ] **Google Maps API Integration** - Fetch additional place details
-- [ ] **Photo Downloads** - Cache place photos locally
-- [ ] **Review Fetching** - Get latest reviews and ratings
-- [ ] **Hours of Operation** - Real-time business hours
+- [x] **Google Maps API Integration** - Fetch additional place details from Google Maps
+- [x] **Photo Downloads** - Download and cache place photos locally
+- [x] **Review Fetching** - Get latest reviews and ratings from Google Maps API
+- [x] **Business Information** - Update hours, phone numbers, websites, and ratings
+- [x] **CLI Enrich Command** - User-friendly enrichment with API key support
 
 ### 3. Web Interface (Low Priority)
 
@@ -132,16 +144,18 @@ internal/
 
 ## 📊 CURRENT STATE SUMMARY
 
-**Lines of Code**: ~2,200+ (excluding tests)
+**Lines of Code**: ~3,100+ (excluding tests)
 **Test Coverage**: >90% for implemented packages
-**Commands Working**: `import`, `list`, `browse`, `review`, `export`, `version`
-**Key Missing**: Web interface, data enrichment via APIs
+**Commands Working**: `import`, `list`, `browse`, `review`, `export`, `enrich`, `version`
+**Key Missing**: Web interface for map visualization
 
 The project has a solid foundation with full import to SQLite,
 comprehensive testing, a working CLI, a fully functional interactive TUI,
-and complete export functionality. The TUI provides rich browsing, searching,
-and editing capabilities. Export supports CSV, GeoJSON, JSON, and Markdown formats.
-The next major milestone is implementing data enrichment from Google Maps API.
+complete export functionality, and data enrichment via Google Maps API.
+The TUI provides rich browsing, searching, and editing capabilities.
+Export supports CSV, GeoJSON, JSON, and Markdown formats.
+Data enrichment fetches photos, reviews, and business information.
+The next major milestone is implementing a web interface for map visualization.
 
 ## 🔄 UPDATE LOG
 
@@ -151,3 +165,5 @@ The next major milestone is implementing data enrichment from Google Maps API.
   review, search, and comprehensive editing capabilities
 - **2025-08-16**: Implemented comprehensive export system supporting CSV, GeoJSON,
   JSON, and Markdown formats with full test coverage and CLI integration
+- **2025-08-16**: Implemented data enrichment system with Google Maps API integration,
+  photo downloads, review fetching, and intelligent data merging
