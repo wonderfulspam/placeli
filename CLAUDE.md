@@ -1,10 +1,17 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with
+code in this repository.
 
 ## Project Overview
 
-placeli is a terminal-based Google Maps list manager written in Go. It provides local, offline-first access to saved places with a rich TUI interface for browsing, searching, and managing location data.
+placeli is a terminal-based Google Maps list manager written in Go. It provides
+local, offline-first access to saved places with a rich TUI interface for
+browsing, searching, and managing location data.
+
+**Current Status**: Check [STATUS.md](STATUS.md) for detailed implementation
+progress, completed features, and next priorities. Always review this file
+before starting new work to understand the current state.
 
 ## Development Workflow
 
@@ -20,6 +27,7 @@ placeli is a terminal-based Google Maps list manager written in Go. It provides 
 ```bash
 .claude/check  # Runs fmt, vet, test, mod tidy, golangci-lint, git checks and more
 ```
+
 The `.claude/check` script runs automatically on pre-commit.
 
 ### Git Commit Practices
@@ -56,7 +64,8 @@ The `.claude/check` script runs automatically on pre-commit.
 
 ### Core Data Model
 
-The `Place` struct with enriched media (photos, reviews) and user data (notes, tags). SQLite storage with flexible JSON fields.
+The `Place` struct with enriched media (photos, reviews) and user data (notes,
+tags). SQLite storage with flexible JSON fields.
 
 ### Commands
 
