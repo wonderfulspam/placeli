@@ -2,29 +2,47 @@
 
 ## Project Overview
 
-placeli is a terminal-based tool for managing your Google Maps lists. It provides a local, offline-first copy of your saved places, allowing you to interact with your data in a fast, keyboard-driven interface. It's designed for users who want to efficiently manage their saved places, add notes, and export their data to various formats.
+placeli is a terminal-based tool for managing your Google Maps lists. It
+provides a local, offline-first copy of your saved places, allowing you to
+interact with your data in a fast, keyboard-driven interface. It's designed for
+users who want to efficiently manage their saved places, add notes, and export
+their data to various formats.
 
 ## Core Concepts
 
-* **Local First:** Your Google Maps data is synced to a local database, allowing for fast access and offline use.
-* **Terminal UI:** A rich, interactive terminal interface provides a powerful and efficient way to manage your places.
-* **Data Enrichment:** placeli can enrich your data with additional details from the Google Maps API, such as photos, reviews, and opening hours.
-* **Extensible:** The tool is designed to be extensible, with a flexible data model and a command-line interface that can be easily scripted and integrated with other tools.
+* **Local First:** Your Google Maps data is synced to a local database, allowing
+  for fast access and offline use.
+* **Terminal UI:** A rich, interactive terminal interface provides a powerful
+  and efficient way to manage your places.
+* **Data Enrichment:** placeli can enrich your data with additional details from
+  the Google Maps API, such as photos, reviews, and opening hours.
+* **Extensible:** The tool is designed to be extensible, with a flexible data
+  model and a command-line interface that can be easily scripted and integrated
+  with other tools.
 
 ## Core Features
 
 * **Import:** Import your saved places from Google Takeout.
-* **Synchronization:** Periodically re-import from Google Takeout to keep the local database up-to-date. The tool should be able to merge changes intelligently, preserving user-added data.
-* **Interactive Review:** A TUI for browsing, searching, and filtering your saved places. Supports advanced filtering by tags, categories, rating, and proximity.
-* **Detailed View:** View detailed information for each place, including photos, reviews, and opening hours.
-* **Editing:** Add notes, custom tags, and user-defined custom fields (e.g., priority, visited_date) to your places.
-* **Export:** Export your data to common formats like GeoJSON, CSV, and Markdown.
+* **Synchronization:** Periodically re-import from Google Takeout to keep the
+  local database up-to-date. The tool should be able to merge changes
+  intelligently, preserving user-added data.
+* **Interactive Review:** A TUI for browsing, searching, and filtering your
+  saved places. Supports advanced filtering by tags, categories, rating, and
+  proximity.
+* **Detailed View:** View detailed information for each place, including photos,
+  reviews, and opening hours.
+* **Editing:** Add notes, custom tags, and user-defined custom fields (e.g.,
+  priority, visited_date) to your places.
+* **Export:** Export your data to common formats like GeoJSON, CSV, and
+  Markdown.
 * **Web UI:** A simple web interface for viewing your places on a map.
-* **Terminal Map View:** (Optional) Render a simple map in the terminal using ASCII or other character-based representations.
+* **Terminal Map View:** (Optional) Render a simple map in the terminal using
+  ASCII or other character-based representations.
 
 ## Data Model
 
-The core data model is centered around the `Place` object. The schema should be flexible and allow for storing additional metadata as needed.
+The core data model is centered around the `Place` object. The schema should be
+flexible and allow for storing additional metadata as needed.
 
 ```go
 type Place struct {
@@ -95,9 +113,13 @@ placeli web
 
 ## TUI Design
 
-The TUI should be clean, responsive, and keyboard-driven. It should provide a list view of places, a detailed view for a selected place, and a search/filter interface. The layout should be inspired by popular TUI applications like `lazygit` and `htop`. Image support in the terminal is a plus, but not a requirement for the initial version.
+The TUI should be clean, responsive, and keyboard-driven. It should provide a
+list view of places, a detailed view for a selected place, and a search/filter
+interface. The layout should be inspired by popular TUI applications like
+`lazygit` and `htop`. Image support in the terminal is a plus, but not a
+requirement for the initial version.
 
-```
+```terminal
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ placeli review                                                  [1/234] 0.4% │
 ├──────────────────────────────────────────────────────────────────────────────┤
@@ -134,7 +156,8 @@ The TUI should be clean, responsive, and keyboard-driven. It should provide a li
 
 ## Database Schema
 
-A simple SQLite database is sufficient for local storage. The schema should be designed to be easily migrated and extended in the future.
+A simple SQLite database is sufficient for local storage. The schema should be
+designed to be easily migrated and extended in the future.
 
 ```sql
 CREATE TABLE places (

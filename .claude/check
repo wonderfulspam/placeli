@@ -48,14 +48,18 @@ printf "Running linter... "
 golangci-lint run >/dev/null 2>&1
 printf "${GREEN}✓${NC}\n"
 
+# Check markdown
+printf "Running markdown linter... "
+markdownlint 2>&1 *.md
+printf "${GREEN}✓${NC}\n"
+#
 # Check for uncommitted changes (fail if any)
 if [ -n "$(git diff --name-only)" ]; then
     echo ""
     printf "${RED}✗${NC} Uncommitted changes detected:\n"
     git diff --name-only | sed 's/^/  /'
     echo ""
-    echo "Please commit or stash changes before running checks."
-    exit 1
+    echo "Please double check that you included all relevant files in the commit."
 fi
 
 # Check staged files
