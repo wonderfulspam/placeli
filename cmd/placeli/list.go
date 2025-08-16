@@ -18,6 +18,13 @@ var (
 	listQuery  string
 )
 
+const (
+	tableNameWidth     = 28
+	tableAddressWidth  = 38
+	tableCategoryWidth = 13
+	tableTotalWidth    = 100
+)
+
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List saved places",
@@ -87,16 +94,16 @@ func printTable(places interface{}) error {
 	}
 
 	fmt.Printf("%-4s %-30s %-40s %-8s %-15s\n", "ID", "Name", "Address", "Rating", "Categories")
-	fmt.Println(strings.Repeat("-", 100))
+	fmt.Println(strings.Repeat("-", tableTotalWidth))
 
 	for i, place := range placeList {
-		name := truncate(place.Name, 28)
-		address := truncate(place.Address, 38)
+		name := truncate(place.Name, tableNameWidth)
+		address := truncate(place.Address, tableAddressWidth)
 		rating := ""
 		if place.Rating > 0 {
 			rating = fmt.Sprintf("%.1f", place.Rating)
 		}
-		categories := truncate(strings.Join(place.Categories, ","), 13)
+		categories := truncate(strings.Join(place.Categories, ","), tableCategoryWidth)
 
 		fmt.Printf("%-4s %-30s %-40s %-8s %-15s\n",
 			strconv.Itoa(i+1), name, address, rating, categories)

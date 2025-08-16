@@ -59,7 +59,14 @@ func (s *EnrichmentService) EnrichPlace(ctx context.Context, place *models.Place
 }
 
 func (s *EnrichmentService) EnrichAllPlaces(ctx context.Context, opts EnrichmentOptions) error {
-	places, err := s.db.ListPlaces(10000, 0)
+	return s.EnrichAllPlacesWithLimit(ctx, opts, 0)
+}
+
+func (s *EnrichmentService) EnrichAllPlacesWithLimit(ctx context.Context, opts EnrichmentOptions, limit int) error {
+	if limit == 0 {
+		limit = 50000 // Use reasonable upper bound instead of hardcoded 10000
+	}
+	places, err := s.db.ListPlaces(limit, 0)
 	if err != nil {
 		return fmt.Errorf("failed to retrieve places: %w", err)
 	}

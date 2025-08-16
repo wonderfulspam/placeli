@@ -10,8 +10,13 @@ import (
 	"github.com/user/placeli/internal/export"
 )
 
+var (
+	exportLimit int
+)
+
 func init() {
 	rootCmd.AddCommand(exportCmd)
+	exportCmd.Flags().IntVar(&exportLimit, "limit", 0, "maximum number of places to export (0 = all)")
 }
 
 var exportCmd = &cobra.Command{
@@ -39,7 +44,12 @@ Examples:
 			return err
 		}
 
-		places, err := db.ListPlaces(10000, 0)
+		// Use a large limit if exportLimit is 0 (export all)
+		limit := exportLimit
+		if limit == 0 {
+			limit = 50000 // Use reasonable upper bound instead of hardcoded 10000
+		}
+		places, err := db.ListPlaces(limit, 0)
 		if err != nil {
 			return fmt.Errorf("failed to retrieve places: %w", err)
 		}

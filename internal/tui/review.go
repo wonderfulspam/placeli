@@ -62,8 +62,12 @@ func (m ReviewModel) Init() tea.Cmd {
 }
 
 func (m ReviewModel) loadPlaces() tea.Cmd {
+	return m.loadPlacesWithLimit(1000) // Increased from hardcoded 100
+}
+
+func (m ReviewModel) loadPlacesWithLimit(limit int) tea.Cmd {
 	return tea.Cmd(func() tea.Msg {
-		places, err := m.db.ListPlaces(100, 0)
+		places, err := m.db.ListPlaces(limit, 0)
 		if err != nil {
 			return errMsg{err}
 		}

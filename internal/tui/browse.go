@@ -61,7 +61,7 @@ func (m BrowseModel) loadPlaces() tea.Cmd {
 			}
 			return placesLoadedMsg{places}
 		}
-		places, err := m.db.ListPlaces(100, 0) // Load first 100 places
+		places, err := m.db.ListPlaces(1000, 0) // Increased from hardcoded 100
 		if err != nil {
 			return errMsg{err}
 		}
