@@ -312,13 +312,13 @@ func TestConvertTakeoutPlace_CustomFields(t *testing.T) {
 	place := convertTakeoutPlace(tp)
 	assert.Equal(t, "Test Place", place.Name)
 	assert.Equal(t, "Great place to visit", place.UserNotes)
-	
+
 	assert.Contains(t, place.CustomFields, "google_maps_url")
 	assert.Equal(t, "https://maps.google.com/?cid=123", place.CustomFields["google_maps_url"])
-	
+
 	assert.Contains(t, place.CustomFields, "imported_from")
 	assert.Equal(t, "takeout", place.CustomFields["imported_from"])
-	
+
 	assert.Contains(t, place.CustomFields, "import_date")
 	assert.IsType(t, "", place.CustomFields["import_date"])
 }

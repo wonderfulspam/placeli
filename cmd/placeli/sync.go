@@ -74,9 +74,9 @@ Examples:
 		}
 
 		// Report results
-		logger.Info("Sync complete", 
-			"added", added, 
-			"updated", updated, 
+		logger.Info("Sync complete",
+			"added", added,
+			"updated", updated,
 			"skipped", skipped,
 			"force", syncForce)
 
@@ -89,7 +89,7 @@ Examples:
 }
 
 type SyncResult struct {
-	Action string      // "add", "update", "skip"
+	Action string // "add", "update", "skip"
 	Place  *models.Place
 	Reason string
 }
@@ -148,8 +148,8 @@ func syncSinglePlace(place *models.Place, dryRun, force bool) (*SyncResult, erro
 	// Place exists
 	if !force {
 		return &SyncResult{
-			Action: "skip", 
-			Place:  place, 
+			Action: "skip",
+			Place:  place,
 			Reason: "already exists (use --force to update)",
 		}, nil
 	}
@@ -180,7 +180,7 @@ func findExistingPlace(place *models.Place) (*models.Place, error) {
 		if place.Address != "" {
 			searchQuery += " " + place.Address
 		}
-		
+
 		places, err := db.SearchPlaces(searchQuery)
 		if err != nil {
 			return nil, err
@@ -200,22 +200,22 @@ func findExistingPlace(place *models.Place) (*models.Place, error) {
 func mergePlace(existing, new *models.Place) *models.Place {
 	// Start with the new place data
 	merged := *new
-	
+
 	// Preserve the original ID and timestamps
 	merged.ID = existing.ID
 	merged.CreatedAt = existing.CreatedAt
 	merged.UpdatedAt = time.Now()
-	
+
 	// Preserve user data (notes, tags, custom fields)
 	merged.UserNotes = existing.UserNotes
 	merged.UserTags = existing.UserTags
-	
+
 	// Merge custom fields, preserving user-added fields
 	if existing.CustomFields != nil {
 		if merged.CustomFields == nil {
 			merged.CustomFields = make(map[string]interface{})
 		}
-		
+
 		// Preserve user-added custom fields (not from import)
 		for key, value := range existing.CustomFields {
 			if key != "google_maps_url" && key != "imported_from" && key != "import_date" {
@@ -223,12 +223,12 @@ func mergePlace(existing, new *models.Place) *models.Place {
 			}
 		}
 	}
-	
+
 	// Update import metadata
 	if merged.CustomFields == nil {
 		merged.CustomFields = make(map[string]interface{})
 	}
 	merged.CustomFields["last_sync"] = time.Now().Format(time.RFC3339)
-	
+
 	return &merged
 }
