@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Placeli</h1>
+            <div class="search-bar">
+                <input type="text" id="search" placeholder="Search places..." />
+                <button onclick="searchPlaces()">Search</button>
+                <button onclick="loadPlaces()">Show All</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="place-count">
+                    <span id="place-count">0</span> places
+                </div>
+                <div id="place-list" class="place-list">
+                    Loading places...
+                </div>
+            </div>
+
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+        </div>
+
+        <div id="place-details" class="place-details hidden">
+            <button class="close-btn" onclick="closeDetails()">×</button>
+            <h2 id="detail-name"></h2>
+            <div id="detail-content"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = '{{.APIKey}}';
+        let map;
+        let markers = [];
+        let places = [];
+        let markersLayer;
+
+        function initMap() {
+            map = L.map('map').setView([0, 0], 2);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            markersLayer = L.layerGroup().addTo(map);
+            loadPlaces();
+        }
+
+        async function loadPlaces() {
+            try {
+                const response = await fetch('/api/places');
+                places = await response.json();
+                displayPlaces(places);
+                updateMap(places);
+            } catch (error) {
+                console.error('Failed to load places:', error);
+                document.getElementById('place-list').innerHTML = 
+                    '<div class="error">Failed to load places</div>';
+            }
+        }
+
+        async function searchPlaces() {
+            const query = document.getElementById('search').value;
+            if (!query) {
+                loadPlaces();
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/places?search=${encodeURIComponent(query)}`);
+                places = await response.json();
+                displayPlaces(places);
+                updateMap(places);
+            } catch (error) {
+                console.error('Failed to search places:', error);
+            }
+        }
+
+        function displayPlaces(places) {
+            const listEl = document.getElementById('place-list');
+            const countEl = document.getElementById('place-count');
+            
+            countEl.textContent = places.length;
+
+            if (places.length === 0) {
+                listEl.innerHTML = '<div class="no-places">No places found</div>';
+                return;
+            }
+
+            listEl.innerHTML = places.map(place => `
+                <div class="place-item" onclick="selectPlace(${place.id})">
+                    <div class="place-name">${escapeHtml(place.name)}</div>
+                    ${place.address ? `<div class="place-address">${escapeHtml(place.address)}</div>` : ''}
+                    ${place.rating > 0 ? `
+                        <div class="place-rating">
+                            ${'★'.repeat(Math.floor(place.rating))} ${place.rating.toFixed(1)}
+                        </div>
+                    ` : ''}
+                    ${place.categories && place.categories.length > 0 ? `
+                        <div class="place-categories">
+                            ${place.categories.map(c => `<span class="category">${escapeHtml(c)}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function updateMap(places) {
+            markersLayer.clearLayers();
+            markers = [];
+
+            const bounds = L.latLngBounds();
+            let hasValidBounds = false;
+
+            places.forEach(place => {
+                if (place.coordinates && place.coordinates.lat && place.coordinates.lng) {
+                    const marker = L.marker([place.coordinates.lat, place.coordinates.lng])
+                        .bindPopup(`
+                            <strong>${escapeHtml(place.name)}</strong><br>
+                            ${place.address ? escapeHtml(place.address) + '<br>' : ''}
+                            ${place.rating > 0 ? `${'★'.repeat(Math.floor(place.rating))} ${place.rating.toFixed(1)}` : ''}
+                        `)
+                        .on('click', () => selectPlace(place.id));
+                    
+                    marker.addTo(markersLayer);
+                    markers.push({id: place.id, marker});
+                    bounds.extend([place.coordinates.lat, place.coordinates.lng]);
+                    hasValidBounds = true;
+                }
+            });
+
+            if (hasValidBounds) {
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+        }
+
+        async function selectPlace(id) {
+            try {
+                const response = await fetch(`/api/place/${id}`);
+                const place = await response.json();
+                showPlaceDetails(place);
+
+                const marker = markers.find(m => m.id === id);
+                if (marker && place.coordinates && place.coordinates.lat && place.coordinates.lng) {
+                    map.setView([place.coordinates.lat, place.coordinates.lng], 15);
+                    marker.marker.openPopup();
+                }
+
+                document.querySelectorAll('.place-item').forEach(el => {
+                    el.classList.remove('selected');
+                });
+                event.currentTarget.classList.add('selected');
+            } catch (error) {
+                console.error('Failed to load place details:', error);
+            }
+        }
+
+        function showPlaceDetails(place) {
+            const detailsEl = document.getElementById('place-details');
+            const nameEl = document.getElementById('detail-name');
+            const contentEl = document.getElementById('detail-content');
+
+            nameEl.textContent = place.name;
+            
+            let content = '';
+            
+            if (place.address) {
+                content += `<p><strong>Address:</strong> ${escapeHtml(place.address)}</p>`;
+            }
+            
+            if (place.phone) {
+                content += `<p><strong>Phone:</strong> ${escapeHtml(place.phone)}</p>`;
+            }
+            
+            if (place.website) {
+                content += `<p><strong>Website:</strong> <a href="${escapeHtml(place.website)}" target="_blank">${escapeHtml(place.website)}</a></p>`;
+            }
+            
+            if (place.hours && place.hours.length > 0) {
+                content += '<p><strong>Hours:</strong></p><ul>';
+                place.hours.forEach(h => {
+                    content += `<li>${escapeHtml(h)}</li>`;
+                });
+                content += '</ul>';
+            }
+            
+            if (place.rating > 0) {
+                content += `<p><strong>Rating:</strong> ${'★'.repeat(Math.floor(place.rating))} ${place.rating.toFixed(1)} (${place.user_ratings_total} reviews)</p>`;
+            }
+            
+            if (place.categories && place.categories.length > 0) {
+                content += `<p><strong>Categories:</strong> ${place.categories.map(c => escapeHtml(c)).join(', ')}</p>`;
+            }
+            
+            if (place.user_notes) {
+                content += `<div class="user-notes"><strong>Notes:</strong><br>${escapeHtml(place.user_notes)}</div>`;
+            }
+            
+            if (place.user_tags && place.user_tags.length > 0) {
+                content += `<p><strong>Tags:</strong> ${place.user_tags.map(t => `<span class="tag">${escapeHtml(t)}</span>`).join(' ')}</p>`;
+            }
+
+            contentEl.innerHTML = content;
+            detailsEl.classList.remove('hidden');
+        }
+
+        function closeDetails() {
+            document.getElementById('place-details').classList.add('hidden');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        document.getElementById('search').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchPlaces();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', initMap);
+    </script>
+</body>
+</html>
