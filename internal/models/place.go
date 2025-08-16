@@ -28,8 +28,10 @@ type Place struct {
 	UserTags     []string               `json:"user_tags"`
 	CustomFields map[string]interface{} `json:"custom_fields"`
 
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt  time.Time  `json:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at"`
+	ImportedAt *time.Time `json:"imported_at,omitempty"`
+	SourceHash string     `json:"source_hash,omitempty"`
 }
 
 type Coordinates struct {

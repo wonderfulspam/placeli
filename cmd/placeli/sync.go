@@ -166,32 +166,26 @@ func syncSinglePlace(place *models.Place, dryRun, force bool) (*SyncResult, erro
 }
 
 func findExistingPlace(place *models.Place) (*models.Place, error) {
-	// First try to find by PlaceID
-	if place.PlaceID != "" {
-		existing, err := db.GetPlace(place.ID)
-		if err == nil {
+	// First try to find by source hash (most reliable)
+	if place.SourceHash != "" {
+		existing, err := db.FindPlaceBySourceHash(place.SourceHash)
+		if err != nil {
+			return nil, err
+		}
+		if existing != nil {
 			return existing, nil
 		}
 	}
 
-	// If not found by PlaceID, search by name and address
-	if place.Name != "" {
-		searchQuery := place.Name
-		if place.Address != "" {
-			searchQuery += " " + place.Address
-		}
+	// Try to find potential duplicates by coordinates and place_id
+	candidates, err := db.FindDuplicateCandidates(place)
+	if err != nil {
+		return nil, err
+	}
 
-		places, err := db.SearchPlaces(searchQuery)
-		if err != nil {
-			return nil, err
-		}
-
-		// Look for exact match
-		for _, existing := range places {
-			if existing.Name == place.Name && existing.Address == place.Address {
-				return existing, nil
-			}
-		}
+	// Return the first candidate if any found
+	if len(candidates) > 0 {
+		return candidates[0], nil
 	}
 
 	return nil, nil // Not found
@@ -205,6 +199,11 @@ func mergePlace(existing, new *models.Place) *models.Place {
 	merged.ID = existing.ID
 	merged.CreatedAt = existing.CreatedAt
 	merged.UpdatedAt = time.Now()
+
+	// Preserve the original ImportedAt if it exists
+	if existing.ImportedAt != nil {
+		merged.ImportedAt = existing.ImportedAt
+	}
 
 	// Preserve user data (notes, tags, custom fields)
 	merged.UserNotes = existing.UserNotes
@@ -224,7 +223,7 @@ func mergePlace(existing, new *models.Place) *models.Place {
 		}
 	}
 
-	// Update import metadata
+	// Update sync metadata
 	if merged.CustomFields == nil {
 		merged.CustomFields = make(map[string]interface{})
 	}

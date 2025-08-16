@@ -92,9 +92,9 @@ func (s *EnrichmentService) EnrichAllPlacesWithLimit(ctx context.Context, opts E
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	logger.Info("Enrichment complete", 
-		"enriched", enriched, 
-		"skipped", skipped, 
+	logger.Info("Enrichment complete",
+		"enriched", enriched,
+		"skipped", skipped,
 		"failed", failed)
 	return nil
 }

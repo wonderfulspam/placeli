@@ -120,6 +120,16 @@ func convertTakeoutPlace(tp TakeoutPlace) *models.Place {
 		hours = string(hoursData)
 	}
 
+	// Generate source hash for duplicate detection
+	sourceData := fmt.Sprintf("%s|%s|%f,%f|%s",
+		tp.Properties.Name,
+		tp.Properties.Address,
+		coordinates.Lat,
+		coordinates.Lng,
+		placeID)
+	sourceHash := fmt.Sprintf("%x", sha256.Sum256([]byte(sourceData)))
+
+	now := time.Now()
 	place := &models.Place{
 		ID:          generateID(placeID),
 		PlaceID:     placeID,
@@ -140,10 +150,12 @@ func convertTakeoutPlace(tp TakeoutPlace) *models.Place {
 		CustomFields: map[string]interface{}{
 			"google_maps_url": tp.Properties.GoogleMapsURL,
 			"imported_from":   "takeout",
-			"import_date":     time.Now().Format(time.RFC3339),
+			"import_date":     now.Format(time.RFC3339),
 		},
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt:  now,
+		UpdatedAt:  now,
+		ImportedAt: &now,
+		SourceHash: sourceHash,
 	}
 
 	return place

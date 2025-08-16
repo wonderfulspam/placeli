@@ -72,7 +72,7 @@ func (m ReviewModel) loadPlacesWithLimit(limit int) tea.Cmd {
 	return tea.Cmd(func() tea.Msg {
 		var places []*models.Place
 		var err error
-		
+
 		if m.search != "" {
 			places, err = m.db.SearchPlaces(m.search)
 		} else {

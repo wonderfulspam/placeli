@@ -20,10 +20,10 @@ var templates embed.FS
 var static embed.FS
 
 type Server struct {
-	db       *database.DB
-	tmpl     *template.Template
-	port     int
-	apiKey   string
+	db     *database.DB
+	tmpl   *template.Template
+	port   int
+	apiKey string
 }
 
 func NewServer(db *database.DB, port int, apiKey string) (*Server, error) {
@@ -51,7 +51,7 @@ func (s *Server) Start() error {
 	addr := fmt.Sprintf(":%d", s.port)
 	logger.Info("Starting web server", "address", addr)
 	fmt.Printf("Web interface available at http://localhost:%d\n", s.port)
-	
+
 	return http.ListenAndServe(addr, mux)
 }
 

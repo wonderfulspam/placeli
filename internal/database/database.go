@@ -44,7 +44,9 @@ func (db *DB) migrate() error {
 		categories TEXT,
 		data TEXT,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		imported_at DATETIME,
+		source_hash TEXT
 	);
 
 	CREATE TABLE IF NOT EXISTS user_data (
@@ -59,10 +61,26 @@ func (db *DB) migrate() error {
 	CREATE INDEX IF NOT EXISTS idx_places_coordinates ON places(lat, lng);
 	CREATE INDEX IF NOT EXISTS idx_places_place_id ON places(place_id);
 	CREATE INDEX IF NOT EXISTS idx_user_data_tags ON user_data(tags);
+	CREATE INDEX IF NOT EXISTS idx_places_source_hash ON places(source_hash);
 	`
 
 	_, err := db.conn.Exec(schema)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Migration: Add new columns if they don't exist
+	migrations := []string{
+		"ALTER TABLE places ADD COLUMN imported_at DATETIME",
+		"ALTER TABLE places ADD COLUMN source_hash TEXT",
+	}
+
+	for _, migration := range migrations {
+		// Ignore errors if columns already exist
+		_, _ = db.conn.Exec(migration)
+	}
+
+	return nil
 }
 
 func (db *DB) SavePlace(place *models.Place) error {
@@ -96,12 +114,12 @@ func (db *DB) SavePlace(place *models.Place) error {
 
 	_, err = tx.Exec(`
 		INSERT OR REPLACE INTO places
-		(id, place_id, name, address, lat, lng, categories, data, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		(id, place_id, name, address, lat, lng, categories, data, created_at, updated_at, imported_at, source_hash)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		place.ID, place.PlaceID, place.Name, place.Address,
 		place.Coordinates.Lat, place.Coordinates.Lng,
 		string(categoriesJSON), string(dataJSON),
-		place.CreatedAt, place.UpdatedAt)
+		place.CreatedAt, place.UpdatedAt, place.ImportedAt, place.SourceHash)
 	if err != nil {
 		return err
 	}
@@ -137,14 +155,24 @@ func scanPlace(scanner interface {
 	var place models.Place
 	var categoriesJSON, dataJSON string
 	var tagsJSON, customFieldsJSON sql.NullString
+	var importedAt sql.NullTime
+	var sourceHash sql.NullString
 
 	err := scanner.Scan(
 		&place.ID, &place.PlaceID, &place.Name, &place.Address,
 		&place.Coordinates.Lat, &place.Coordinates.Lng,
 		&categoriesJSON, &dataJSON, &place.CreatedAt, &place.UpdatedAt,
+		&importedAt, &sourceHash,
 		&place.UserNotes, &tagsJSON, &customFieldsJSON)
 	if err != nil {
 		return nil, err
+	}
+
+	if importedAt.Valid {
+		place.ImportedAt = &importedAt.Time
+	}
+	if sourceHash.Valid {
+		place.SourceHash = sourceHash.String
 	}
 
 	return unmarshalPlace(&place, categoriesJSON, dataJSON, tagsJSON, customFieldsJSON)
@@ -186,6 +214,7 @@ func (db *DB) GetPlace(id string) (*models.Place, error) {
 		SELECT
 			p.id, p.place_id, p.name, p.address, p.lat, p.lng,
 			p.categories, p.data, p.created_at, p.updated_at,
+			p.imported_at, p.source_hash,
 			ud.notes, ud.tags, ud.custom_fields
 		FROM places p
 		LEFT JOIN user_data ud ON p.id = ud.place_id
@@ -199,6 +228,7 @@ func (db *DB) ListPlaces(limit, offset int) ([]*models.Place, error) {
 		SELECT
 			p.id, p.place_id, p.name, p.address, p.lat, p.lng,
 			p.categories, p.data, p.created_at, p.updated_at,
+			p.imported_at, p.source_hash,
 			ud.notes, ud.tags, ud.custom_fields
 		FROM places p
 		LEFT JOIN user_data ud ON p.id = ud.place_id
@@ -231,6 +261,7 @@ func (db *DB) SearchPlaces(query string) ([]*models.Place, error) {
 		SELECT
 			p.id, p.place_id, p.name, p.address, p.lat, p.lng,
 			p.categories, p.data, p.created_at, p.updated_at,
+			p.imported_at, p.source_hash,
 			ud.notes, ud.tags, ud.custom_fields
 		FROM places p
 		LEFT JOIN user_data ud ON p.id = ud.place_id
