@@ -38,16 +38,19 @@ const (
 )
 
 type ReviewModel struct {
-	db        *database.DB
-	places    []*models.Place
-	cursor    int
-	current   *models.Place
-	mode      ReviewMode
-	width     int
-	height    int
-	message   string
-	editField string
-	editValue string
+	db          *database.DB
+	places      []*models.Place
+	cursor      int
+	current     *models.Place
+	mode        ReviewMode
+	width       int
+	height      int
+	message     string
+	editField   string
+	editValue   string
+	search      string
+	searchMode  bool
+	searchInput string
 }
 
 func NewReviewModel(db *database.DB) ReviewModel {
@@ -67,7 +70,14 @@ func (m ReviewModel) loadPlaces() tea.Cmd {
 
 func (m ReviewModel) loadPlacesWithLimit(limit int) tea.Cmd {
 	return tea.Cmd(func() tea.Msg {
-		places, err := m.db.ListPlaces(limit, 0)
+		var places []*models.Place
+		var err error
+		
+		if m.search != "" {
+			places, err = m.db.SearchPlaces(m.search)
+		} else {
+			places, err = m.db.ListPlaces(limit, 0)
+		}
 		if err != nil {
 			return errMsg{err}
 		}
@@ -116,6 +126,10 @@ func (m ReviewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m ReviewModel) updateList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.searchMode {
+		return m.updateSearch(msg)
+	}
+
 	switch msg.String() {
 	case "ctrl+c", "q":
 		return m, tea.Quit
@@ -142,11 +156,54 @@ func (m ReviewModel) updateList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case "/":
-		// TODO: Add search mode to review
-		m.message = "Search functionality available in browse mode"
+		m.searchMode = true
+		m.searchInput = ""
+		m.message = ""
+
+	case "c":
+		// Clear search
+		m.search = ""
+		m.searchInput = ""
+		m.message = "Search cleared"
+		return m, m.loadPlaces()
 
 	case "r":
 		return m, m.loadPlaces()
+	}
+
+	return m, nil
+}
+
+func (m ReviewModel) updateSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "ctrl+c":
+		return m, tea.Quit
+
+	case "esc":
+		m.searchMode = false
+		m.searchInput = ""
+
+	case "enter":
+		m.searchMode = false
+		m.search = m.searchInput
+		m.cursor = 0
+		if m.search == "" {
+			m.message = "Search cleared"
+		} else {
+			m.message = fmt.Sprintf("Searching for: %s", m.search)
+		}
+		return m, m.loadPlaces()
+
+	case "backspace":
+		if len(m.searchInput) > 0 {
+			m.searchInput = m.searchInput[:len(m.searchInput)-1]
+		}
+
+	default:
+		// Add printable characters to search input
+		if len(msg.String()) == 1 && msg.String() >= " " && msg.String() <= "~" {
+			m.searchInput += msg.String()
+		}
 	}
 
 	return m, nil
@@ -302,6 +359,15 @@ func (m ReviewModel) viewList() string {
 	b.WriteString(title)
 	b.WriteString("\n\n")
 
+	// Search interface
+	if m.searchMode {
+		searchPrompt := fmt.Sprintf("Search: %s_", m.searchInput)
+		b.WriteString(fmt.Sprintf("🔍 %s\n", searchPrompt))
+		b.WriteString("(enter to search, esc to cancel)\n\n")
+	} else if m.search != "" {
+		b.WriteString(fmt.Sprintf("🔍 Active search: %s (press 'c' to clear)\n\n", m.search))
+	}
+
 	if m.message != "" {
 		b.WriteString(fmt.Sprintf("🔔 %s\n\n", m.message))
 	}
@@ -329,7 +395,7 @@ func (m ReviewModel) viewList() string {
 		}
 	}
 
-	help := helpStyle.Render("↑/k up • ↓/j down • enter view details • r refresh • q quit")
+	help := helpStyle.Render("↑/k up • ↓/j down • enter view details • / search • c clear search • r refresh • q quit")
 	b.WriteString(fmt.Sprintf("\n%s", help))
 
 	return b.String()
