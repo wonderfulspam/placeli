@@ -13,7 +13,7 @@ func init() {
 	opts := &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}
-	
+
 	handler := slog.NewTextHandler(os.Stdout, opts)
 	defaultLogger = slog.New(handler)
 }
