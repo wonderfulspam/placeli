@@ -25,10 +25,11 @@ const (
 	tableTotalWidth    = 100
 )
 
-var listCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List saved places",
-	Long:  "List places from the local database with optional filtering and formatting.",
+var queryCmd = &cobra.Command{
+	Use:     "query",
+	Aliases: []string{"list"}, // Keep backward compatibility
+	Short:   "Query saved places",
+	Long:    "Query places from the local database with optional filtering and formatting.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var places, err = func() (interface{}, error) {
 			if listQuery != "" {
@@ -121,10 +122,10 @@ func truncate(s string, maxLen int) string {
 }
 
 func init() {
-	listCmd.Flags().IntVarP(&listLimit, "limit", "l", 50, "maximum number of places to show")
-	listCmd.Flags().IntVarP(&listOffset, "offset", "o", 0, "number of places to skip")
-	listCmd.Flags().StringVarP(&listFormat, "format", "f", "simple", "output format (simple, table, json)")
-	listCmd.Flags().StringVarP(&listQuery, "query", "q", "", "search query")
+	queryCmd.Flags().IntVarP(&listLimit, "limit", "l", 50, "maximum number of places to show")
+	queryCmd.Flags().IntVarP(&listOffset, "offset", "o", 0, "number of places to skip")
+	queryCmd.Flags().StringVarP(&listFormat, "format", "f", "simple", "output format (simple, table, json)")
+	queryCmd.Flags().StringVarP(&listQuery, "query", "q", "", "search query")
 
-	rootCmd.AddCommand(listCmd)
+	rootCmd.AddCommand(queryCmd)
 }
