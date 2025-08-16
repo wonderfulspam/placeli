@@ -129,6 +129,10 @@ func (m ReviewModel) updateList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.mode = ReviewModeDetail
 		}
 
+	case "/":
+		// TODO: Add search mode to review
+		m.message = "Search functionality available in browse mode"
+
 	case "r":
 		return m, m.loadPlaces()
 	}

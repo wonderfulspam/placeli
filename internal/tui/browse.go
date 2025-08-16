@@ -29,14 +29,16 @@ var (
 )
 
 type BrowseModel struct {
-	db       *database.DB
-	places   []*models.Place
-	cursor   int
-	selected map[int]struct{}
-	width    int
-	height   int
-	search   string
-	message  string
+	db          *database.DB
+	places      []*models.Place
+	cursor      int
+	selected    map[int]struct{}
+	width       int
+	height      int
+	search      string
+	message     string
+	searchMode  bool
+	searchInput string
 }
 
 func NewBrowseModel(db *database.DB) BrowseModel {
@@ -95,6 +97,10 @@ func (m BrowseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.message = fmt.Sprintf("Error: %v", msg.err)
 
 	case tea.KeyMsg:
+		if m.searchMode {
+			return m.updateSearch(msg)
+		}
+
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return m, tea.Quit
@@ -128,11 +134,54 @@ func (m BrowseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "/":
-			// TODO: Implement search mode
-			m.message = "Search mode not yet implemented"
+			m.searchMode = true
+			m.searchInput = ""
+			m.message = ""
+
+		case "c":
+			// Clear search
+			m.search = ""
+			m.searchInput = ""
+			m.message = "Search cleared"
+			return m, m.loadPlaces()
 
 		case "r":
 			return m, m.loadPlaces()
+		}
+	}
+
+	return m, nil
+}
+
+func (m BrowseModel) updateSearch(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "ctrl+c":
+		return m, tea.Quit
+
+	case "esc":
+		m.searchMode = false
+		m.searchInput = ""
+
+	case "enter":
+		m.searchMode = false
+		m.search = m.searchInput
+		m.cursor = 0
+		if m.search == "" {
+			m.message = "Search cleared"
+		} else {
+			m.message = fmt.Sprintf("Searching for: %s", m.search)
+		}
+		return m, m.loadPlaces()
+
+	case "backspace":
+		if len(m.searchInput) > 0 {
+			m.searchInput = m.searchInput[:len(m.searchInput)-1]
+		}
+
+	default:
+		// Add printable characters to search input
+		if len(msg.String()) == 1 && msg.String() >= " " && msg.String() <= "~" {
+			m.searchInput += msg.String()
 		}
 	}
 
@@ -146,6 +195,15 @@ func (m BrowseModel) View() string {
 	title := titleStyle.Render(fmt.Sprintf("placeli browse (%d places)", len(m.places)))
 	b.WriteString(title)
 	b.WriteString("\n\n")
+
+	// Search interface
+	if m.searchMode {
+		searchPrompt := fmt.Sprintf("Search: %s_", m.searchInput)
+		b.WriteString(fmt.Sprintf("🔍 %s\n", searchPrompt))
+		b.WriteString("(enter to search, esc to cancel)\n\n")
+	} else if m.search != "" {
+		b.WriteString(fmt.Sprintf("🔍 Active search: %s (press 'c' to clear)\n\n", m.search))
+	}
 
 	// Message
 	if m.message != "" {
@@ -194,8 +252,13 @@ func (m BrowseModel) View() string {
 	}
 
 	// Help
-	help := helpStyle.Render("↑/k up • ↓/j down • enter/space select • g top • G bottom • r refresh • / search • q quit")
-	b.WriteString(fmt.Sprintf("\n%s", help))
+	if m.searchMode {
+		help := helpStyle.Render("Type to search • enter confirm • esc cancel")
+		b.WriteString(fmt.Sprintf("\n%s", help))
+	} else {
+		help := helpStyle.Render("↑/k up • ↓/j down • enter/space select • g top • G bottom • / search • c clear • r refresh • q quit")
+		b.WriteString(fmt.Sprintf("\n%s", help))
+	}
 
 	return b.String()
 }
