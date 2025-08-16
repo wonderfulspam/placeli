@@ -89,6 +89,14 @@ func (m ReviewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case errMsg:
 		m.message = fmt.Sprintf("Error: %v", msg.err)
 
+	case saveSuccessMsg:
+		m.message = "Saved successfully"
+
+	case deleteSuccessMsg:
+		m.message = "Place deleted"
+		m.mode = ReviewModeList
+		return m, m.loadPlaces()
+
 	case tea.KeyMsg:
 		switch m.mode {
 		case ReviewModeList:
@@ -254,13 +262,21 @@ func (m ReviewModel) saveEdit() tea.Cmd {
 
 func (m ReviewModel) deletePlace() tea.Cmd {
 	return tea.Cmd(func() tea.Msg {
-		// Note: Implement DeletePlace in database if needed
-		m.message = "Delete functionality not yet implemented"
-		return nil
+		if m.current == nil {
+			return errMsg{fmt.Errorf("no place selected")}
+		}
+
+		err := m.db.DeletePlace(m.current.ID)
+		if err != nil {
+			return errMsg{err}
+		}
+
+		return deleteSuccessMsg{}
 	})
 }
 
 type saveSuccessMsg struct{}
+type deleteSuccessMsg struct{}
 
 func (m ReviewModel) View() string {
 	switch m.mode {
