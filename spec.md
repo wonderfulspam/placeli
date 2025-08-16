@@ -13,12 +13,14 @@ placeli is a terminal-based tool for managing your Google Maps lists. It provide
 
 ## Core Features
 
-* **Import:** Import your saved places from Google Takeout or by providing a link to your Google Maps lists.
-* **Interactive Review:** A TUI for browsing, searching, and filtering your saved places.
+* **Import:** Import your saved places from Google Takeout.
+* **Synchronization:** Periodically re-import from Google Takeout to keep the local database up-to-date. The tool should be able to merge changes intelligently, preserving user-added data.
+* **Interactive Review:** A TUI for browsing, searching, and filtering your saved places. Supports advanced filtering by tags, categories, rating, and proximity.
 * **Detailed View:** View detailed information for each place, including photos, reviews, and opening hours.
-* **Editing:** Add notes and custom tags to your places.
+* **Editing:** Add notes, custom tags, and user-defined custom fields (e.g., priority, visited_date) to your places.
 * **Export:** Export your data to common formats like GeoJSON, CSV, and Markdown.
 * **Web UI:** A simple web interface for viewing your places on a map.
+* **Terminal Map View:** (Optional) Render a simple map in the terminal using ASCII or other character-based representations.
 
 ## Data Model
 
@@ -52,6 +54,7 @@ type Place struct {
     // User Data
     UserNotes    string
     UserTags     []string
+    CustomFields map[string]interface{}
 }
 
 type Photo struct {
@@ -71,14 +74,17 @@ type Review struct {
 The command-line interface should be simple and intuitive.
 
 ```bash
-# Import from Google Takeout or Maps Lists
+# Import from Google Takeout
 placeli import <source>
+
+# Sync with Google Takeout
+placeli sync <source>
 
 # Interactive review mode
 placeli review
 
-# Browse local database
-placeli browse
+# Query the local database
+placeli query --tag "favorite" --format json
 
 # Export data
 placeli export <format> <output>
