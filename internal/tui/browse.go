@@ -322,6 +322,12 @@ func (m BrowseModel) View() string {
 			if len(place.UserTags) > 0 {
 				line += fmt.Sprintf("\n     🔖 %s", strings.Join(place.UserTags, ", "))
 			}
+			if len(place.CustomFields) > 0 {
+				customFieldsDisplay := m.formatCustomFields(place.CustomFields)
+				if customFieldsDisplay != "" {
+					line += fmt.Sprintf("\n     ⚙️  %s", customFieldsDisplay)
+				}
+			}
 
 			if i == m.cursor {
 				b.WriteString(selectedItemStyle.Render(line))
@@ -376,6 +382,59 @@ func (m BrowseModel) applyTagToSelected(tag, action string) tea.Cmd {
 
 		return tagAppliedMsg{tag: tag, action: action, count: count}
 	})
+}
+
+func (m BrowseModel) formatCustomFields(fields map[string]interface{}) string {
+	var displayFields []string
+	systemFields := map[string]bool{
+		"google_maps_url": true,
+		"imported_from":   true,
+		"import_date":     true,
+		"last_sync":       true,
+	}
+	
+	for key, value := range fields {
+		// Skip system fields
+		if systemFields[key] {
+			continue
+		}
+		
+		// Format the value for display
+		var valueStr string
+		switch v := value.(type) {
+		case string:
+			if v != "" {
+				valueStr = v
+			}
+		case float64:
+			if v != 0 {
+				valueStr = fmt.Sprintf("%.1f", v)
+			}
+		case bool:
+			if v {
+				valueStr = "true"
+			}
+		case []interface{}:
+			if len(v) > 0 {
+				var items []string
+				for _, item := range v {
+					items = append(items, fmt.Sprintf("%v", item))
+				}
+				valueStr = strings.Join(items, ",")
+			}
+		default:
+			if value != nil {
+				valueStr = fmt.Sprintf("%v", value)
+			}
+		}
+		
+		// Only show fields with non-empty values
+		if valueStr != "" {
+			displayFields = append(displayFields, fmt.Sprintf("%s:%s", key, valueStr))
+		}
+	}
+	
+	return strings.Join(displayFields, " ")
 }
 
 type tagAppliedMsg struct {
