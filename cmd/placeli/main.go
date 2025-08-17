@@ -19,20 +19,34 @@ var rootCmd = &cobra.Command{
 	Short: "Terminal-based Google Maps list manager",
 	Long:  "placeli is a terminal-based tool for managing your Google Maps lists with local, offline-first storage.",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		// Skip database initialization for commands that don't need it
+		cmdName := cmd.Name()
+		if cmdName == "help" || cmdName == "version" || cmdName == "completion" {
+			return
+		}
+
+		// Also skip if help flag is set
+		if cmd.Flags().Changed("help") {
+			return
+		}
+
 		if dbPath == "" {
 			homeDir, _ := os.UserHomeDir()
 			dbPath = filepath.Join(homeDir, ".placeli", "places.db")
 		}
 
+		// Create the directory if it doesn't exist
 		if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
 			fmt.Fprintf(os.Stderr, "Error creating directory: %v\n", err)
 			os.Exit(1)
 		}
 
+		// Initialize database (will create tables if they don't exist)
 		var err error
 		db, err = database.New(dbPath)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error opening database: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Error initializing database: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Database will be created at: %s\n", dbPath)
 			os.Exit(1)
 		}
 	},
