@@ -72,20 +72,52 @@ func generateHash(data []byte) [32]byte {
 	return sha256.Sum256(data)
 }
 
-// extractFromGoogleMapsURL extracts coordinates and place name from a Google Maps URL
-func extractFromGoogleMapsURL(gmapsURL string) (lat, lng float64, placeName string) {
+// extractFromGoogleMapsURL extracts coordinates, place name, and place ID from a Google Maps URL
+func extractFromGoogleMapsURL(gmapsURL string) (lat, lng float64, placeName, placeID string) {
 	if gmapsURL == "" {
-		return 0, 0, ""
+		return 0, 0, "", ""
 	}
 
 	parsedURL, err := url.Parse(gmapsURL)
 	if err != nil {
-		return 0, 0, ""
+		return 0, 0, "", ""
+	}
+
+	// Try to extract place ID from various URL patterns
+	// Pattern 1: data=!4m2!3m1!1s0x47a851b6fcf54dff:0x4cd24aa24663def7
+	if strings.Contains(gmapsURL, "data=!") {
+		dataPattern := regexp.MustCompile(`1s([^!&]+)`)
+		if matches := dataPattern.FindStringSubmatch(gmapsURL); len(matches) > 1 {
+			placeID = matches[1]
+		}
+	}
+
+	// Pattern 2: cid parameter (ChIJd)
+	if cid := parsedURL.Query().Get("cid"); cid != "" {
+		placeID = cid
+	}
+
+	// Pattern 3: ftid parameter
+	if ftid := parsedURL.Query().Get("ftid"); ftid != "" {
+		placeID = ftid
+	}
+
+	// Check for coordinates in URL path (e.g., /search/55.5880809,13.0085002)
+	if strings.Contains(parsedURL.Path, "/search/") {
+		pathParts := strings.Split(parsedURL.Path, "/")
+		for _, part := range pathParts {
+			coordPattern := regexp.MustCompile(`^(-?\d+\.?\d*),(-?\d+\.?\d*)$`)
+			if matches := coordPattern.FindStringSubmatch(part); len(matches) == 3 {
+				lat, _ = strconv.ParseFloat(matches[1], 64)
+				lng, _ = strconv.ParseFloat(matches[2], 64)
+				return lat, lng, "", placeID
+			}
+		}
 	}
 
 	q := parsedURL.Query().Get("q")
 	if q == "" {
-		return 0, 0, ""
+		return 0, 0, "", placeID
 	}
 
 	// Try to parse as coordinates (e.g., "56.14993739674781,12.572669684886932")
@@ -93,7 +125,7 @@ func extractFromGoogleMapsURL(gmapsURL string) (lat, lng float64, placeName stri
 	if matches := coordPattern.FindStringSubmatch(q); len(matches) == 3 {
 		lat, _ = strconv.ParseFloat(matches[1], 64)
 		lng, _ = strconv.ParseFloat(matches[2], 64)
-		return lat, lng, ""
+		return lat, lng, "", placeID
 	}
 
 	// Otherwise, treat as place name (decode URL encoding)
@@ -102,7 +134,7 @@ func extractFromGoogleMapsURL(gmapsURL string) (lat, lng float64, placeName stri
 	if idx := strings.Index(placeName, "&"); idx > 0 {
 		placeName = placeName[:idx]
 	}
-	return 0, 0, placeName
+	return 0, 0, placeName, placeID
 }
 
 // convertTakeoutPlace converts a TakeoutPlace to our models.Place
@@ -128,7 +160,7 @@ func convertTakeoutPlace(tp TakeoutPlace) *models.Place {
 
 	// If no location info but we have a Google Maps URL, try to extract from it
 	if name == "" && address == "" && tp.Properties.GoogleMapsURL != "" {
-		lat, lng, placeName := extractFromGoogleMapsURL(tp.Properties.GoogleMapsURL)
+		lat, lng, placeName, extractedPlaceID := extractFromGoogleMapsURL(tp.Properties.GoogleMapsURL)
 		if lat != 0 && lng != 0 {
 			// We have coordinates from the URL
 			coordinates.Lat = lat
@@ -137,6 +169,10 @@ func convertTakeoutPlace(tp TakeoutPlace) *models.Place {
 		} else if placeName != "" {
 			// We have a place name from the URL
 			name = placeName
+		}
+		// Use extracted place ID if we don't have one
+		if tp.Properties.PlaceID == "" && extractedPlaceID != "" {
+			tp.Properties.PlaceID = extractedPlaceID
 		}
 	}
 
@@ -402,9 +438,10 @@ func (t *TakeoutImporter) parseCSVRecord(record []string, headers map[string]int
 		return nil
 	}
 
-	// Extract coordinates from URL if not provided
+	// Extract coordinates and place ID from URL if not provided
+	var extractedPlaceID string
 	if lat == 0 && lng == 0 && url != "" {
-		extractedLat, extractedLng, extractedName := extractFromGoogleMapsURL(url)
+		extractedLat, extractedLng, extractedName, urlPlaceID := extractFromGoogleMapsURL(url)
 		if extractedLat != 0 && extractedLng != 0 {
 			lat = extractedLat
 			lng = extractedLng
@@ -412,10 +449,16 @@ func (t *TakeoutImporter) parseCSVRecord(record []string, headers map[string]int
 		if name == "" && extractedName != "" {
 			name = extractedName
 		}
+		extractedPlaceID = urlPlaceID
 	}
 
-	// Generate a place ID
-	placeID := fmt.Sprintf("saved_%x", generateHash([]byte(name+address+url)))[:16]
+	// Generate a place ID - prefer extracted place ID for better uniqueness
+	var placeID string
+	if extractedPlaceID != "" {
+		placeID = fmt.Sprintf("gmap_%s", extractedPlaceID)
+	} else {
+		placeID = fmt.Sprintf("saved_%x", generateHash([]byte(name+address+url)))[:16]
+	}
 
 	now := time.Now()
 	place := &models.Place{
@@ -446,13 +489,15 @@ func (t *TakeoutImporter) parseCSVRecord(record []string, headers map[string]int
 		place.CustomFields["original_list"] = listName
 	}
 
-	// Generate source hash for duplicate detection
-	sourceData := fmt.Sprintf("%s|%s|%f,%f|%s",
+	// Generate source hash for duplicate detection - include more unique data for CSV imports
+	sourceData := fmt.Sprintf("%s|%s|%f,%f|%s|%s|%s",
 		name,
 		address,
 		lat,
 		lng,
-		placeID)
+		placeID,
+		url,      // Include URL for uniqueness
+		listName) // Include list name for context
 	place.SourceHash = fmt.Sprintf("%x", generateHash([]byte(sourceData)))
 
 	return place

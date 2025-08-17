@@ -28,6 +28,7 @@ func (db *DB) FindPlaceBySourceHash(hash string) (*models.Place, error) {
 // FindDuplicateCandidates finds potential duplicate places based on coordinates or place_id
 func (db *DB) FindDuplicateCandidates(place *models.Place) ([]*models.Place, error) {
 	// Look for potential duplicates based on coordinates or place_id
+	// Note: Zero coordinates (0,0) are treated as "no coordinates" and should not match each other
 	rows, err := db.conn.Query(`
 		SELECT
 			p.id, p.place_id, p.name, p.address, p.lat, p.lng,
@@ -37,8 +38,10 @@ func (db *DB) FindDuplicateCandidates(place *models.Place) ([]*models.Place, err
 		FROM places p
 		LEFT JOIN user_data ud ON p.id = ud.place_id
 		WHERE (p.place_id = ? AND p.place_id != '')
-		   OR (ABS(p.lat - ?) < 0.0001 AND ABS(p.lng - ?) < 0.0001)`,
-		place.PlaceID, place.Coordinates.Lat, place.Coordinates.Lng)
+		   OR (ABS(p.lat - ?) < 0.0001 AND ABS(p.lng - ?) < 0.0001
+		       AND p.lat != 0 AND p.lng != 0 AND ? != 0 AND ? != 0)`,
+		place.PlaceID, place.Coordinates.Lat, place.Coordinates.Lng,
+		place.Coordinates.Lat, place.Coordinates.Lng)
 	if err != nil {
 		return nil, err
 	}
