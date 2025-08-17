@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/user/placeli/internal/models"
+	"github.com/user/placeli/internal/utils"
 )
 
 func TestParseListFile(t *testing.T) {
@@ -327,9 +328,9 @@ func TestConvertTakeoutPlace_CustomFields(t *testing.T) {
 }
 
 func TestGenerateID(t *testing.T) {
-	id1 := generateID("test-place-id")
-	id2 := generateID("test-place-id")
-	id3 := generateID("different-place-id")
+	id1 := utils.GenerateID("test-place-id")
+	id2 := utils.GenerateID("test-place-id")
+	id3 := utils.GenerateID("different-place-id")
 
 	assert.Len(t, id1, 12, "Generated ID should be 12 characters")
 	assert.Equal(t, id1, id2, "Same input should generate same ID")

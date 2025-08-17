@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/user/placeli/internal/models"
+	"github.com/user/placeli/internal/utils"
 )
 
 // FoursquareImporter handles Foursquare/Swarm check-in exports
@@ -207,7 +208,7 @@ func (fi *FoursquareImporter) convertFoursquareVenue(venue FoursquareVenue, chec
 
 	now := time.Now()
 	place := &models.Place{
-		ID:          fi.generateID(placeID),
+		ID:          utils.GenerateID(placeID),
 		PlaceID:     placeID,
 		Name:        venue.Name,
 		Address:     fi.buildAddress(venue.Location),
@@ -336,9 +337,4 @@ func (fi *FoursquareImporter) addCheckinMetadata(place *models.Place, checkins [
 	if len(comments) > 0 {
 		place.CustomFields["checkin_comments"] = comments
 	}
-}
-
-func (fi *FoursquareImporter) generateID(placeID string) string {
-	hash := sha256.Sum256([]byte(placeID))
-	return fmt.Sprintf("%x", hash)[:12]
 }

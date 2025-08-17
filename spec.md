@@ -23,8 +23,8 @@ their data to various formats.
 ## Core Features
 
 * **Import:** Import your saved places from Google Takeout.
-* **Synchronization:** Periodically re-import from Google Takeout to keep the
-  local database up-to-date. The tool should be able to merge changes
+* **Synchronization:** Periodically re-import from Google Takeout using `import
+  --force` to keep the local database up-to-date. The tool merges changes
   intelligently, preserving user-added data.
 * **Interactive Review:** A TUI for browsing, searching, and filtering your
   saved places. Supports advanced filtering by tags, categories, rating, and
@@ -95,8 +95,8 @@ The command-line interface should be simple and intuitive.
 # Import from Google Takeout
 placeli import <source>
 
-# Sync with Google Takeout
-placeli sync <source>
+# Update existing data with new imports (force update)
+placeli import from <source> --force
 
 # Interactive review mode
 placeli review

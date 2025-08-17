@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/user/placeli/internal/constants"
 	"github.com/user/placeli/internal/export"
 )
 
@@ -47,7 +48,7 @@ Examples:
 		// Use a large limit if exportLimit is 0 (export all)
 		limit := exportLimit
 		if limit == 0 {
-			limit = 50000 // Use reasonable upper bound instead of hardcoded 10000
+			limit = constants.DefaultExportLimit // Use reasonable upper bound
 		}
 		places, err := db.ListPlaces(limit, 0)
 		if err != nil {

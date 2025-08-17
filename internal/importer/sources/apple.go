@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/user/placeli/internal/models"
+	"github.com/user/placeli/internal/utils"
 )
 
 // AppleImporter handles KML and GPX files from Apple Maps
@@ -173,7 +174,7 @@ func (ai *AppleImporter) convertKMLPlacemark(placemark KMLPlacemark) *models.Pla
 
 	now := time.Now()
 	place := &models.Place{
-		ID:          ai.generateID(placeID),
+		ID:          utils.GenerateID(placeID),
 		PlaceID:     placeID,
 		Name:        placemark.Name,
 		Address:     placemark.Address,
@@ -225,7 +226,7 @@ func (ai *AppleImporter) convertGPXWaypoint(waypoint GPXWaypoint) *models.Place 
 
 	now := time.Now()
 	place := &models.Place{
-		ID:          ai.generateID(placeID),
+		ID:          utils.GenerateID(placeID),
 		PlaceID:     placeID,
 		Name:        waypoint.Name,
 		Address:     "", // GPX typically doesn't have addresses
@@ -302,9 +303,4 @@ func (ai *AppleImporter) extractGPXCategories(waypointType string) []string {
 		return []string{}
 	}
 	return []string{waypointType}
-}
-
-func (ai *AppleImporter) generateID(placeID string) string {
-	hash := sha256.Sum256([]byte(placeID))
-	return fmt.Sprintf("%x", hash)[:12]
 }

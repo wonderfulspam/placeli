@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/user/placeli/internal/models"
+	"github.com/user/placeli/internal/utils"
 )
 
 // TakeoutImporter handles imports from Google Takeout exports
@@ -65,12 +66,6 @@ type TakeoutProperties struct {
 }
 
 // Helper functions moved from internal/importer/takeout.go
-
-// generateID generates a unique ID from a place ID
-func generateID(placeID string) string {
-	hash := sha256.Sum256([]byte(placeID))
-	return fmt.Sprintf("%x", hash)[:12]
-}
 
 // generateHash generates SHA256 hash of data
 func generateHash(data []byte) [32]byte {
@@ -175,7 +170,7 @@ func convertTakeoutPlace(tp TakeoutPlace) *models.Place {
 
 	now := time.Now()
 	place := &models.Place{
-		ID:          generateID(placeID),
+		ID:          utils.GenerateID(placeID),
 		PlaceID:     placeID,
 		Name:        name,
 		Address:     address,
@@ -424,7 +419,7 @@ func (t *TakeoutImporter) parseCSVRecord(record []string, headers map[string]int
 
 	now := time.Now()
 	place := &models.Place{
-		ID:      generateID(placeID),
+		ID:      utils.GenerateID(placeID),
 		PlaceID: placeID,
 		Name:    name,
 		Address: address,
@@ -498,8 +493,11 @@ func (t *TakeoutImporter) importFromZip(zipPath string) ([]*models.Place, error)
 	var allPlaces []*models.Place
 
 	for _, file := range reader.File {
-		// Look for relevant JSON files
-		if !strings.HasSuffix(file.Name, ".json") {
+		// Look for relevant JSON and CSV files
+		isJSON := strings.HasSuffix(file.Name, ".json")
+		isCSV := strings.HasSuffix(file.Name, ".csv")
+
+		if !isJSON && !isCSV {
 			continue
 		}
 
@@ -516,7 +514,13 @@ func (t *TakeoutImporter) importFromZip(zipPath string) ([]*models.Place, error)
 				continue
 			}
 
-			places, err := t.ImportFromData(data, "json")
+			var places []*models.Place
+			if isJSON {
+				places, err = t.ImportFromData(data, "json")
+			} else if isCSV {
+				places, err = t.ImportFromData(data, "csv")
+			}
+
 			if err == nil && len(places) > 0 {
 				allPlaces = append(allPlaces, places...)
 			}
@@ -605,7 +609,7 @@ func (t *TakeoutImporter) convertSavedPlace(sp *SavedPlace, listName string) *mo
 
 	now := time.Now()
 	place := &models.Place{
-		ID:      generateID(placeID),
+		ID:      utils.GenerateID(placeID),
 		PlaceID: placeID,
 		Name:    sp.Name,
 		Address: sp.Address,

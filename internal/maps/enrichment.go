@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/user/placeli/internal/constants"
 	"github.com/user/placeli/internal/database"
 	"github.com/user/placeli/internal/logger"
 	"github.com/user/placeli/internal/models"
@@ -65,7 +66,7 @@ func (s *EnrichmentService) EnrichAllPlaces(ctx context.Context, opts Enrichment
 
 func (s *EnrichmentService) EnrichAllPlacesWithLimit(ctx context.Context, opts EnrichmentOptions, limit int) error {
 	if limit == 0 {
-		limit = 50000 // Use reasonable upper bound instead of hardcoded 10000
+		limit = constants.DefaultExportLimit // Use reasonable upper bound
 	}
 	places, err := s.db.ListPlaces(limit, 0)
 	if err != nil {
@@ -169,7 +170,7 @@ func (s *EnrichmentService) downloadPhotos(ctx context.Context, place *models.Pl
 	place.Photos = nil
 
 	for i, photo := range photos {
-		if i >= 5 {
+		if i >= constants.MaxPhotosPerPlace {
 			break
 		}
 
@@ -195,7 +196,7 @@ func (s *EnrichmentService) downloadPhotos(ctx context.Context, place *models.Pl
 			Height:    photo.Height,
 		})
 
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(constants.PhotoDownloadDelayMs * time.Millisecond)
 	}
 
 	return nil

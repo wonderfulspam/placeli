@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/user/placeli/internal/models"
+	"github.com/user/placeli/internal/utils"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -191,7 +192,7 @@ func (oi *OSMImporter) convertOSMNode(node OSMNode) *models.Place {
 
 	now := time.Now()
 	place := &models.Place{
-		ID:          oi.generateID(placeID),
+		ID:          utils.GenerateID(placeID),
 		PlaceID:     placeID,
 		Name:        name,
 		Address:     oi.buildAddress(node.Tags),
@@ -297,9 +298,4 @@ func (oi *OSMImporter) humanizeCategory(tagKey, value string) string {
 	default:
 		return caser.String(value)
 	}
-}
-
-func (oi *OSMImporter) generateID(placeID string) string {
-	hash := sha256.Sum256([]byte(placeID))
-	return fmt.Sprintf("%x", hash)[:12]
 }

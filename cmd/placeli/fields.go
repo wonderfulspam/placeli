@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/user/placeli/internal/logger"
+	"github.com/user/placeli/internal/models"
 )
 
 var (
@@ -270,19 +271,20 @@ Available templates:
 // Helper functions for field management
 
 func getAllFieldNames() (map[string]int, error) {
-	places, err := db.ListPlaces(10000, 0) // Get all places
-	if err != nil {
-		return nil, err
-	}
-
 	fieldCounts := make(map[string]int)
-	for _, place := range places {
+
+	err := db.ForEachPlace("", func(place *models.Place) error {
 		for fieldName := range place.CustomFields {
 			// Skip system fields
 			if !isSystemField(fieldName) {
 				fieldCounts[fieldName]++
 			}
 		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	return fieldCounts, nil
@@ -368,13 +370,9 @@ func applyFieldTemplate(template string) (int, error) {
 		return 0, fmt.Errorf("unknown template: %s", template)
 	}
 
-	places, err := db.ListPlaces(10000, 0) // Get all places
-	if err != nil {
-		return 0, err
-	}
-
 	count := 0
-	for _, place := range places {
+
+	err := db.ForEachPlace("", func(place *models.Place) error {
 		if place.CustomFields == nil {
 			place.CustomFields = make(map[string]interface{})
 		}
@@ -390,10 +388,15 @@ func applyFieldTemplate(template string) (int, error) {
 
 		if added {
 			if err := db.SavePlace(place); err != nil {
-				return count, fmt.Errorf("failed to update place %s: %w", place.ID, err)
+				return fmt.Errorf("failed to update place %s: %w", place.ID, err)
 			}
 			count++
 		}
+		return nil
+	})
+
+	if err != nil {
+		return count, err
 	}
 
 	return count, nil

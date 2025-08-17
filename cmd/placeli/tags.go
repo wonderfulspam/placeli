@@ -212,104 +212,101 @@ the tag will be applied to all places.`,
 // Database operations for tag management
 
 func getTagCounts() (map[string]int, error) {
-	places, err := db.ListPlaces(10000, 0) // Get all places
-	if err != nil {
-		return nil, err
-	}
-
 	tagCounts := make(map[string]int)
-	for _, place := range places {
+
+	err := db.ForEachPlace("", func(place *models.Place) error {
 		for _, tag := range place.UserTags {
 			tagCounts[tag]++
 		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	return tagCounts, nil
 }
 
 func getTagUsageCount(tag string) (int, error) {
-	places, err := db.ListPlaces(10000, 0) // Get all places
-	if err != nil {
-		return 0, err
-	}
-
 	count := 0
-	for _, place := range places {
+
+	err := db.ForEachPlace("", func(place *models.Place) error {
 		if place.HasTag(tag) {
 			count++
 		}
+		return nil
+	})
+
+	if err != nil {
+		return 0, err
 	}
 
 	return count, nil
 }
 
 func renameTag(oldTag, newTag string) (int, error) {
-	places, err := db.ListPlaces(10000, 0) // Get all places
-	if err != nil {
-		return 0, err
-	}
-
 	count := 0
-	for _, place := range places {
+
+	err := db.ForEachPlace("", func(place *models.Place) error {
 		if place.HasTag(oldTag) {
 			place.RemoveTag(oldTag)
 			place.AddTag(newTag)
 
 			if err := db.SavePlace(place); err != nil {
-				return count, fmt.Errorf("failed to update place %s: %w", place.ID, err)
+				return fmt.Errorf("failed to update place %s: %w", place.ID, err)
 			}
 			count++
 		}
+		return nil
+	})
+
+	if err != nil {
+		return count, err
 	}
 
 	return count, nil
 }
 
 func deleteTag(tag string) (int, error) {
-	places, err := db.ListPlaces(10000, 0) // Get all places
-	if err != nil {
-		return 0, err
-	}
-
 	count := 0
-	for _, place := range places {
+
+	err := db.ForEachPlace("", func(place *models.Place) error {
 		if place.HasTag(tag) {
 			place.RemoveTag(tag)
 
 			if err := db.SavePlace(place); err != nil {
-				return count, fmt.Errorf("failed to update place %s: %w", place.ID, err)
+				return fmt.Errorf("failed to update place %s: %w", place.ID, err)
 			}
 			count++
 		}
+		return nil
+	})
+
+	if err != nil {
+		return count, err
 	}
 
 	return count, nil
 }
 
 func applyTag(tag, filter string) (int, error) {
-	var places []*models.Place
-	var err error
-
-	if filter != "" {
-		places, err = db.SearchPlaces(filter)
-	} else {
-		places, err = db.ListPlaces(10000, 0) // Get all places
-	}
-
-	if err != nil {
-		return 0, err
-	}
-
 	count := 0
-	for _, place := range places {
+
+	err := db.ForEachPlace(filter, func(place *models.Place) error {
 		if !place.HasTag(tag) {
 			place.AddTag(tag)
 
 			if err := db.SavePlace(place); err != nil {
-				return count, fmt.Errorf("failed to update place %s: %w", place.ID, err)
+				return fmt.Errorf("failed to update place %s: %w", place.ID, err)
 			}
 			count++
 		}
+		return nil
+	})
+
+	if err != nil {
+		return count, err
 	}
 
 	return count, nil
