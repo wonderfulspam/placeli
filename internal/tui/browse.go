@@ -89,6 +89,7 @@ func (m BrowseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		// Ensure cursor stays visible after resize
 		return m, nil
 
 	case placesLoadedMsg:
@@ -300,28 +301,15 @@ func (m BrowseModel) View() string {
 		b.WriteString(fmt.Sprintf("🔔 %s\n\n", m.message))
 	}
 
-	// Places list with pagination
+	// Places list with responsive pagination
 	if len(m.places) == 0 {
 		b.WriteString("No places found. Use 'placeli import' to add places.\n")
 	} else {
-		// Calculate viewport - show max 10 items centered around cursor
-		itemsPerPage := 10
-		start := m.cursor - itemsPerPage/2
-		if start < 0 {
-			start = 0
-		}
-		end := start + itemsPerPage
-		if end > len(m.places) {
-			end = len(m.places)
-			start = end - itemsPerPage
-			if start < 0 {
-				start = 0
-			}
-		}
+		start, end := m.calculateViewport()
 
-		// Show pagination info
-		b.WriteString(fmt.Sprintf("Showing %d-%d of %d places (cursor at %d)\n\n",
-			start+1, end, len(m.places), m.cursor+1))
+		// Show pagination info with terminal size
+		b.WriteString(fmt.Sprintf("Showing %d-%d of %d places (cursor at %d) [%dx%d]\n\n",
+			start+1, end, len(m.places), m.cursor+1, m.width, m.height))
 
 		// Render visible items
 		for i := start; i < end; i++ {
@@ -415,6 +403,74 @@ func (m BrowseModel) applyTagToSelected(tag, action string) tea.Cmd {
 
 		return tagAppliedMsg{tag: tag, action: action, count: count}
 	})
+}
+
+// calculateViewport returns the start and end indices for visible items
+func (m BrowseModel) calculateViewport() (start, end int) {
+	if len(m.places) == 0 {
+		return 0, 0
+	}
+
+	// Calculate available space for items based on terminal height
+	usedLines := 2 // title
+	if m.searchMode || m.search != "" {
+		usedLines += 3 // search interface
+	}
+	if m.tagMode {
+		usedLines += 3 // tag interface
+	}
+	if m.message != "" {
+		usedLines += 2 // message
+	}
+	usedLines += 3 // pagination info + spacing
+	usedLines += 2 // help text
+
+	// Each place takes roughly 4-6 lines (name + address + categories + tags + custom fields + spacing)
+	// Be conservative and assume 5 lines per item on average
+	linesPerItem := 5
+	availableHeight := m.height - usedLines
+	if availableHeight < 10 {
+		availableHeight = 10 // minimum reasonable height
+	}
+
+	itemsPerPage := availableHeight / linesPerItem
+	if itemsPerPage < 1 {
+		itemsPerPage = 1
+	}
+	if itemsPerPage > len(m.places) {
+		itemsPerPage = len(m.places)
+	}
+
+	// Calculate viewport to keep cursor visible and centered when possible
+	start = m.cursor - itemsPerPage/2
+	if start < 0 {
+		start = 0
+	}
+	end = start + itemsPerPage
+	if end > len(m.places) {
+		end = len(m.places)
+		start = end - itemsPerPage
+		if start < 0 {
+			start = 0
+		}
+	}
+
+	// Ensure cursor is always visible
+	if m.cursor < start {
+		start = m.cursor
+		end = start + itemsPerPage
+		if end > len(m.places) {
+			end = len(m.places)
+		}
+	} else if m.cursor >= end {
+		end = m.cursor + 1
+		start = end - itemsPerPage
+		if start < 0 {
+			start = 0
+		}
+	}
+
+	return start, end
 }
 
 func (m BrowseModel) formatCustomFields(fields map[string]interface{}) string {
