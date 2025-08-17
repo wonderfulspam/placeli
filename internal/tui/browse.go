@@ -89,15 +89,18 @@ func (m BrowseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		return m, nil
 
 	case placesLoadedMsg:
 		m.places = msg.places
 		if m.cursor >= len(m.places) {
 			m.cursor = 0
 		}
+		return m, nil
 
 	case errMsg:
 		m.message = fmt.Sprintf("Error: %v", msg.err)
+		return m, nil
 
 	case tagAppliedMsg:
 		action := "added to"
@@ -107,6 +110,7 @@ func (m BrowseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.message = fmt.Sprintf("Tag '%s' %s %d places", msg.tag, action, msg.count)
 		// Clear selection after applying tags
 		m.selected = make(map[int]struct{})
+		return m, nil
 
 	case tea.KeyMsg:
 		if m.searchMode {
@@ -124,11 +128,13 @@ func (m BrowseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor > 0 {
 				m.cursor--
 			}
+			return m, nil
 
 		case "down", "j":
 			if m.cursor < len(m.places)-1 {
 				m.cursor++
 			}
+			return m, nil
 
 		case "enter", " ":
 			if len(m.places) > 0 {
@@ -139,19 +145,23 @@ func (m BrowseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.selected[m.cursor] = struct{}{}
 				}
 			}
+			return m, nil
 
 		case "g":
 			m.cursor = 0
+			return m, nil
 
 		case "G":
 			if len(m.places) > 0 {
 				m.cursor = len(m.places) - 1
 			}
+			return m, nil
 
 		case "/":
 			m.searchMode = true
 			m.searchInput = ""
 			m.message = ""
+			return m, nil
 
 		case "c":
 			// Clear search
@@ -173,6 +183,7 @@ func (m BrowseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.message = "Select places first (space/enter to select)"
 			}
+			return m, nil
 
 		case "T":
 			// Remove tag from selected places
@@ -184,6 +195,7 @@ func (m BrowseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				m.message = "Select places first (space/enter to select)"
 			}
+			return m, nil
 		}
 	}
 
@@ -288,11 +300,32 @@ func (m BrowseModel) View() string {
 		b.WriteString(fmt.Sprintf("🔔 %s\n\n", m.message))
 	}
 
-	// Places list
+	// Places list with pagination
 	if len(m.places) == 0 {
 		b.WriteString("No places found. Use 'placeli import' to add places.\n")
 	} else {
-		for i, place := range m.places {
+		// Calculate viewport - show max 10 items centered around cursor
+		itemsPerPage := 10
+		start := m.cursor - itemsPerPage/2
+		if start < 0 {
+			start = 0
+		}
+		end := start + itemsPerPage
+		if end > len(m.places) {
+			end = len(m.places)
+			start = end - itemsPerPage
+			if start < 0 {
+				start = 0
+			}
+		}
+
+		// Show pagination info
+		b.WriteString(fmt.Sprintf("Showing %d-%d of %d places (cursor at %d)\n\n",
+			start+1, end, len(m.places), m.cursor+1))
+
+		// Render visible items
+		for i := start; i < end; i++ {
+			place := m.places[i]
 			cursor := " "
 			if m.cursor == i {
 				cursor = ">"
@@ -393,11 +426,26 @@ func (m BrowseModel) formatCustomFields(fields map[string]interface{}) string {
 		"last_sync":       true,
 	}
 
-	for key, value := range fields {
+	// Get keys and sort them for deterministic output
+	var keys []string
+	for key := range fields {
 		// Skip system fields
-		if systemFields[key] {
-			continue
+		if !systemFields[key] {
+			keys = append(keys, key)
 		}
+	}
+
+	// Sort keys alphabetically for consistent ordering
+	for i := 0; i < len(keys); i++ {
+		for j := i + 1; j < len(keys); j++ {
+			if keys[i] > keys[j] {
+				keys[i], keys[j] = keys[j], keys[i]
+			}
+		}
+	}
+
+	for _, key := range keys {
+		value := fields[key]
 
 		// Format the value for display
 		var valueStr string
