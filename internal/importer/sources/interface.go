@@ -34,6 +34,7 @@ func NewSourceManager() *SourceManager {
 	sm.RegisterSource("apple", &AppleImporter{})
 	sm.RegisterSource("osm", &OSMImporter{})
 	sm.RegisterSource("foursquare", &FoursquareImporter{})
+	sm.RegisterSource("takeout", &TakeoutImporter{})
 
 	return sm
 }
@@ -105,6 +106,11 @@ func matchesFormat(filePath, format string) bool {
 		return hasExtension(filePath, ".json")
 	case "csv":
 		return hasExtension(filePath, ".csv")
+	case "zip":
+		return hasExtension(filePath, ".zip")
+	case "directory":
+		// Check if it's a directory (would need os.Stat)
+		return false // Let individual importers handle directory detection
 	}
 	return false
 }

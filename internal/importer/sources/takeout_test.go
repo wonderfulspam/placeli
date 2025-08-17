@@ -1,4 +1,4 @@
-package importer
+package sources
 
 import (
 	"encoding/json"
@@ -180,7 +180,8 @@ func TestImportFromTakeout(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test ImportFromTakeout
-	places, err := ImportFromTakeout(tmpDir)
+	importer := &TakeoutImporter{}
+	places, err := importer.ImportFromFile(tmpDir)
 	require.NoError(t, err)
 
 	assert.Len(t, places, 2, "Should import 2 places")
@@ -210,13 +211,15 @@ func TestImportFromTakeout_EmptyDirectory(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 
-	places, err := ImportFromTakeout(tmpDir)
+	importer := &TakeoutImporter{}
+	places, err := importer.ImportFromFile(tmpDir)
 	require.NoError(t, err)
 	assert.Empty(t, places, "Should return empty slice for empty directory")
 }
 
 func TestImportFromTakeout_NonexistentDirectory(t *testing.T) {
-	places, err := ImportFromTakeout("/nonexistent/path")
+	importer := &TakeoutImporter{}
+	places, err := importer.ImportFromFile("/nonexistent/path")
 	assert.Error(t, err)
 	assert.Nil(t, places)
 }

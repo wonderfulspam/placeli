@@ -54,7 +54,7 @@ sudo mv placeli /usr/local/bin/
 
 Before using placeli, you'll need to export your Google Maps data:
 
-#### Option 1: Google Takeout (Recommended)
+#### Option 1: Google Takeout - Maps (your places) (Recommended)
 
 1. Go to [Google Takeout](https://takeout.google.com/)
 2. Click "Deselect all"
@@ -62,7 +62,15 @@ Before using placeli, you'll need to export your Google Maps data:
 4. Choose your preferred export format and delivery method
 5. Download the resulting ZIP file
 
-#### Option 2: Export Individual Lists
+#### Option 2: Google Takeout - Saved (Collections)
+
+1. Go to [Google Takeout](https://takeout.google.com/)
+2. Click "Deselect all"
+3. Select "Saved - (Collections of saved links from Google Search and Maps)"
+4. Choose "Export once" and set format to .zip
+5. Download the file and unzip it to find your Saved Places folder with CSV files
+
+#### Option 3: Export Individual Lists
 
 1. Open [Google Maps](https://maps.google.com/)
 2. Click the menu (☰) → "Your places" → "Lists"
@@ -72,14 +80,20 @@ Before using placeli, you'll need to export your Google Maps data:
 ### 1. Import Your Data
 
 ```bash
-# Import from Google Takeout
-placeli imports from ~/Downloads/takeout-*.zip
+# Import from Google Takeout (ZIP file)
+placeli import from ~/Downloads/takeout-*.zip
 
 # Import from KML files
-placeli imports from ~/Downloads/places.kml
+placeli import from ~/Downloads/places.kml
+
+# Import from CSV files (Google Takeout "Saved")
+placeli import from ~/Downloads/saved-places.csv --source=takeout
 
 # Import from other sources
-placeli imports from ~/Downloads/checkins.json --source=foursquare
+placeli import from ~/Downloads/checkins.json --source=foursquare
+
+# Force update existing places
+placeli import from ~/Downloads/places.json --force
 ```
 
 ### 2. Browse Your Places
@@ -178,18 +192,19 @@ placeli fields list
 placeli fields templates
 ```
 
-## Sync & Updates
+## Merge & Updates
 
 Keep your data current without duplicates:
 
 ```bash
-# Smart sync with new Takeout data
-placeli sync ~/Downloads/new-takeout.zip
+# Import new data with smart duplicate detection (default)
+placeli import from ~/Downloads/new-takeout.zip
 
-# Merge strategies
-placeli sync --merge    # Preserve local edits (default)
-placeli sync --force    # Overwrite with new data
-placeli sync --skip     # Keep existing, skip conflicts
+# Force update existing places with new data
+placeli import from ~/Downloads/new-takeout.zip --force
+
+# Import without duplicate checking (treat all as new)
+placeli import from ~/Downloads/new-takeout.zip --no-merge
 ```
 
 ## Terminal Map View
@@ -269,10 +284,9 @@ placeli export markdown \
 
 ```bash
 # Import everything at once
-placeli imports from ~/takeout.zip
-placeli imports from ~/apple-maps.kml
-placeli imports from ~/checkins.json --source=foursquare
-placeli sync  # Deduplicate
+placeli import from ~/takeout.zip
+placeli import from ~/apple-maps.kml
+placeli import from ~/checkins.json --source=foursquare
 ```
 
 ## Development
