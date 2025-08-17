@@ -36,7 +36,7 @@ git clone https://github.com/wonderfulspam/placeli.git
 cd placeli
 
 # Build the binary
-go build -o placeli cmd/placeli/main.go
+go build -o placeli ./cmd/placeli/
 
 # Optional: Install globally
 sudo mv placeli /usr/local/bin/
@@ -288,7 +288,7 @@ go test -race ./...
 .claude/check
 
 # Build for release
-go build -ldflags="-s -w" -o placeli cmd/placeli/main.go
+go build -ldflags="-s -w" -o placeli ./cmd/placeli/
 ```
 
 ## Contributing

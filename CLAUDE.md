@@ -78,7 +78,7 @@ tags). SQLite storage with flexible JSON fields.
 ## Build Commands
 
 ```bash
-go build -o placeli cmd/placeli/main.go  # Build binary
+go build -o placeli ./cmd/placeli/  # Build binary
 go test -race ./...                      # Test with race detector
 go test -cover ./...                     # Test with coverage
 ```
