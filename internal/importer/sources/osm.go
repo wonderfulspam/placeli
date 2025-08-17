@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/user/placeli/internal/models"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // OSMImporter handles OpenStreetMap data exports
@@ -103,7 +105,7 @@ func (oi *OSMImporter) parseCSV(data []byte) ([]*models.Place, error) {
 	// Expect header row with columns: name, lat, lon, type, description
 	header := records[0]
 	nameCol, latCol, lonCol, typeCol, descCol := -1, -1, -1, -1, -1
-	
+
 	for i, col := range header {
 		switch strings.ToLower(col) {
 		case "name", "title":
@@ -142,9 +144,9 @@ func (oi *OSMImporter) parseCSV(data []byte) ([]*models.Place, error) {
 
 		// Create OSM node structure for conversion
 		osmNode := OSMNode{
-			ID:   int64(i), // Use row index as temporary ID
-			Lat:  lat,
-			Lon:  lon,
+			ID:  int64(i), // Use row index as temporary ID
+			Lat: lat,
+			Lon: lon,
 			Tags: map[string]string{
 				"name": name,
 			},
@@ -179,10 +181,10 @@ func (oi *OSMImporter) convertOSMNode(node OSMNode) *models.Place {
 	}
 
 	// Generate unique IDs
-	sourceData := fmt.Sprintf("osm|%d|%s|%f,%f", 
+	sourceData := fmt.Sprintf("osm|%d|%s|%f,%f",
 		node.ID,
 		name,
-		coords.Lat, 
+		coords.Lat,
 		coords.Lng)
 	sourceHash := fmt.Sprintf("%x", sha256.Sum256([]byte(sourceData)))
 	placeID := fmt.Sprintf("osm_%d", node.ID)
@@ -214,8 +216,8 @@ func (oi *OSMImporter) convertOSMNode(node OSMNode) *models.Place {
 
 	// Add OSM-specific tags as custom fields
 	for key, value := range node.Tags {
-		if key != "name" && key != "phone" && key != "website" && 
-		   key != "description" && !strings.HasPrefix(key, "addr:") {
+		if key != "name" && key != "phone" && key != "website" &&
+			key != "description" && !strings.HasPrefix(key, "addr:") {
 			place.CustomFields[fmt.Sprintf("osm_%s", key)] = value
 		}
 	}
@@ -225,7 +227,7 @@ func (oi *OSMImporter) convertOSMNode(node OSMNode) *models.Place {
 
 func (oi *OSMImporter) buildAddress(tags map[string]string) string {
 	var addressParts []string
-	
+
 	// Common OSM address tags
 	if housenumber := tags["addr:housenumber"]; housenumber != "" {
 		addressParts = append(addressParts, housenumber)
@@ -242,16 +244,16 @@ func (oi *OSMImporter) buildAddress(tags map[string]string) string {
 	if country := tags["addr:country"]; country != "" {
 		addressParts = append(addressParts, country)
 	}
-	
+
 	return strings.Join(addressParts, ", ")
 }
 
 func (oi *OSMImporter) extractCategories(tags map[string]string) []string {
 	var categories []string
-	
+
 	// Common OSM category tags
 	categoryTags := []string{"amenity", "shop", "tourism", "leisure", "craft", "office"}
-	
+
 	for _, tagKey := range categoryTags {
 		if value := tags[tagKey]; value != "" {
 			// Convert OSM values to readable categories
@@ -259,11 +261,14 @@ func (oi *OSMImporter) extractCategories(tags map[string]string) []string {
 			categories = append(categories, category)
 		}
 	}
-	
+
 	return categories
 }
 
 func (oi *OSMImporter) humanizeCategory(tagKey, value string) string {
+	// Create a title caser for English
+	caser := cases.Title(language.English)
+
 	// Convert OSM tag values to human-readable categories
 	switch tagKey {
 	case "amenity":
@@ -281,16 +286,16 @@ func (oi *OSMImporter) humanizeCategory(tagKey, value string) string {
 		case "school":
 			return "School"
 		default:
-			return strings.Title(value)
+			return caser.String(value)
 		}
 	case "shop":
-		return "Shopping - " + strings.Title(value)
+		return "Shopping - " + caser.String(value)
 	case "tourism":
-		return "Tourism - " + strings.Title(value)
+		return "Tourism - " + caser.String(value)
 	case "leisure":
-		return "Leisure - " + strings.Title(value)
+		return "Leisure - " + caser.String(value)
 	default:
-		return strings.Title(value)
+		return caser.String(value)
 	}
 }
 

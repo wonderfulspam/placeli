@@ -8,13 +8,13 @@ import (
 type ImportSource interface {
 	// Name returns the human-readable name of the source
 	Name() string
-	
+
 	// SupportedFormats returns file extensions or format types this source can handle
 	SupportedFormats() []string
-	
+
 	// ImportFromFile imports places from a file path
 	ImportFromFile(filePath string) ([]*models.Place, error)
-	
+
 	// ImportFromData imports places from raw data
 	ImportFromData(data []byte, format string) ([]*models.Place, error)
 }
@@ -29,12 +29,12 @@ func NewSourceManager() *SourceManager {
 	sm := &SourceManager{
 		sources: make(map[string]ImportSource),
 	}
-	
+
 	// Register all available sources
 	sm.RegisterSource("apple", &AppleImporter{})
 	sm.RegisterSource("osm", &OSMImporter{})
 	sm.RegisterSource("foursquare", &FoursquareImporter{})
-	
+
 	return sm
 }
 
@@ -78,7 +78,7 @@ func (sm *SourceManager) ImportFromFile(filePath string) ([]*models.Place, error
 		}
 		return nil, &UnsupportedFormatError{FilePath: filePath}
 	}
-	
+
 	return source.ImportFromFile(filePath)
 }
 
@@ -110,6 +110,6 @@ func matchesFormat(filePath, format string) bool {
 }
 
 func hasExtension(filePath, ext string) bool {
-	return len(filePath) >= len(ext) && 
-		   filePath[len(filePath)-len(ext):] == ext
+	return len(filePath) >= len(ext) &&
+		filePath[len(filePath)-len(ext):] == ext
 }

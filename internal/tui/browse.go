@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbletea"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/user/placeli/internal/database"
 	"github.com/user/placeli/internal/models"
@@ -392,13 +392,13 @@ func (m BrowseModel) formatCustomFields(fields map[string]interface{}) string {
 		"import_date":     true,
 		"last_sync":       true,
 	}
-	
+
 	for key, value := range fields {
 		// Skip system fields
 		if systemFields[key] {
 			continue
 		}
-		
+
 		// Format the value for display
 		var valueStr string
 		switch v := value.(type) {
@@ -427,13 +427,13 @@ func (m BrowseModel) formatCustomFields(fields map[string]interface{}) string {
 				valueStr = fmt.Sprintf("%v", value)
 			}
 		}
-		
+
 		// Only show fields with non-empty values
 		if valueStr != "" {
 			displayFields = append(displayFields, fmt.Sprintf("%s:%s", key, valueStr))
 		}
 	}
-	
+
 	return strings.Join(displayFields, " ")
 }
 

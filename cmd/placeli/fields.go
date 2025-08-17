@@ -17,14 +17,14 @@ var (
 
 func init() {
 	rootCmd.AddCommand(fieldsCmd)
-	
+
 	// Add subcommands
 	fieldsCmd.AddCommand(fieldsListCmd)
 	fieldsCmd.AddCommand(fieldsAddCmd)
 	fieldsCmd.AddCommand(fieldsRemoveCmd)
 	fieldsCmd.AddCommand(fieldsSetCmd)
 	fieldsCmd.AddCommand(fieldsTemplatesCmd)
-	
+
 	// Flags for add command
 	fieldsAddCmd.Flags().StringVar(&fieldType, "type", "text", "field type: text, number, date, boolean, list")
 	fieldsTemplatesCmd.Flags().StringVar(&fieldTemplate, "template", "", "apply a field template: travel, business, personal")
@@ -71,12 +71,12 @@ var fieldsListCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("failed to get place: %w", err)
 			}
-			
+
 			if len(place.CustomFields) == 0 {
 				fmt.Printf("No custom fields found for place: %s\n", place.Name)
 				return nil
 			}
-			
+
 			fmt.Printf("Custom fields for %s:\n\n", place.Name)
 			for key, value := range place.CustomFields {
 				fmt.Printf("%-20s: %v\n", key, value)
@@ -87,18 +87,18 @@ var fieldsListCmd = &cobra.Command{
 			if err != nil {
 				return fmt.Errorf("failed to get field names: %w", err)
 			}
-			
+
 			if len(fieldNames) == 0 {
 				fmt.Println("No custom fields found")
 				return nil
 			}
-			
+
 			fmt.Printf("Found %d custom fields in use:\n\n", len(fieldNames))
 			for field, count := range fieldNames {
 				fmt.Printf("%-20s (used in %d places)\n", field, count)
 			}
 		}
-		
+
 		return nil
 	},
 }
@@ -111,20 +111,20 @@ var fieldsAddCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		placeID := args[0]
 		fieldName := strings.TrimSpace(args[1])
-		
+
 		if fieldName == "" {
 			return fmt.Errorf("field name cannot be empty")
 		}
-		
+
 		place, err := db.GetPlace(placeID)
 		if err != nil {
 			return fmt.Errorf("failed to get place: %w", err)
 		}
-		
+
 		if place.CustomFields == nil {
 			place.CustomFields = make(map[string]interface{})
 		}
-		
+
 		// Set default value based on type
 		var defaultValue interface{}
 		switch fieldType {
@@ -141,16 +141,16 @@ var fieldsAddCmd = &cobra.Command{
 		default:
 			return fmt.Errorf("unknown field type: %s", fieldType)
 		}
-		
+
 		place.CustomFields[fieldName] = defaultValue
-		
+
 		if err := db.SavePlace(place); err != nil {
 			return fmt.Errorf("failed to save place: %w", err)
 		}
-		
+
 		logger.Info("Added custom field", "place", place.Name, "field", fieldName, "type", fieldType)
 		fmt.Printf("Added field '%s' (%s) to %s\n", fieldName, fieldType, place.Name)
-		
+
 		return nil
 	},
 }
@@ -163,31 +163,31 @@ var fieldsRemoveCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		placeID := args[0]
 		fieldName := strings.TrimSpace(args[1])
-		
+
 		place, err := db.GetPlace(placeID)
 		if err != nil {
 			return fmt.Errorf("failed to get place: %w", err)
 		}
-		
+
 		if place.CustomFields == nil {
 			fmt.Printf("No custom fields found for %s\n", place.Name)
 			return nil
 		}
-		
+
 		if _, exists := place.CustomFields[fieldName]; !exists {
 			fmt.Printf("Field '%s' not found for %s\n", fieldName, place.Name)
 			return nil
 		}
-		
+
 		delete(place.CustomFields, fieldName)
-		
+
 		if err := db.SavePlace(place); err != nil {
 			return fmt.Errorf("failed to save place: %w", err)
 		}
-		
+
 		logger.Info("Removed custom field", "place", place.Name, "field", fieldName)
 		fmt.Printf("Removed field '%s' from %s\n", fieldName, place.Name)
-		
+
 		return nil
 	},
 }
@@ -201,16 +201,16 @@ var fieldsSetCmd = &cobra.Command{
 		placeID := args[0]
 		fieldName := strings.TrimSpace(args[1])
 		valueStr := args[2]
-		
+
 		place, err := db.GetPlace(placeID)
 		if err != nil {
 			return fmt.Errorf("failed to get place: %w", err)
 		}
-		
+
 		if place.CustomFields == nil {
 			place.CustomFields = make(map[string]interface{})
 		}
-		
+
 		// Parse value based on current type or infer type
 		var value interface{}
 		if existing, exists := place.CustomFields[fieldName]; exists {
@@ -223,16 +223,16 @@ var fieldsSetCmd = &cobra.Command{
 			// Try to infer type from value
 			value = inferFieldValue(valueStr)
 		}
-		
+
 		place.CustomFields[fieldName] = value
-		
+
 		if err := db.SavePlace(place); err != nil {
 			return fmt.Errorf("failed to save place: %w", err)
 		}
-		
+
 		logger.Info("Set custom field", "place", place.Name, "field", fieldName, "value", value)
 		fmt.Printf("Set field '%s' = %v for %s\n", fieldName, value, place.Name)
-		
+
 		return nil
 	},
 }
@@ -250,19 +250,19 @@ Available templates:
 		if fieldTemplate == "" {
 			fmt.Println("Available templates:")
 			fmt.Println("  travel   - Travel planning fields")
-			fmt.Println("  business - Business tracking fields") 
+			fmt.Println("  business - Business tracking fields")
 			fmt.Println("  personal - Personal use fields")
 			fmt.Println("\nUse --template=<name> to apply a template")
 			return nil
 		}
-		
+
 		count, err := applyFieldTemplate(fieldTemplate)
 		if err != nil {
 			return fmt.Errorf("failed to apply template: %w", err)
 		}
-		
+
 		fmt.Printf("Applied '%s' template to %d places\n", fieldTemplate, count)
-		
+
 		return nil
 	},
 }
@@ -274,7 +274,7 @@ func getAllFieldNames() (map[string]int, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	fieldCounts := make(map[string]int)
 	for _, place := range places {
 		for fieldName := range place.CustomFields {
@@ -284,7 +284,7 @@ func getAllFieldNames() (map[string]int, error) {
 			}
 		}
 	}
-	
+
 	return fieldCounts, nil
 }
 
@@ -324,24 +324,24 @@ func inferFieldValue(valueStr string) interface{} {
 	if val, err := strconv.ParseFloat(valueStr, 64); err == nil {
 		return val
 	}
-	
+
 	// Try to parse as boolean
 	if val, err := strconv.ParseBool(valueStr); err == nil {
 		return val
 	}
-	
+
 	// Try to parse as date
 	if _, err := time.Parse("2006-01-02", valueStr); err == nil {
 		return valueStr
 	}
-	
+
 	// Default to string
 	return valueStr
 }
 
 func applyFieldTemplate(template string) (int, error) {
 	var fields map[string]interface{}
-	
+
 	switch template {
 	case "travel":
 		fields = map[string]interface{}{
@@ -367,18 +367,18 @@ func applyFieldTemplate(template string) (int, error) {
 	default:
 		return 0, fmt.Errorf("unknown template: %s", template)
 	}
-	
+
 	places, err := db.ListPlaces(10000, 0) // Get all places
 	if err != nil {
 		return 0, err
 	}
-	
+
 	count := 0
 	for _, place := range places {
 		if place.CustomFields == nil {
 			place.CustomFields = make(map[string]interface{})
 		}
-		
+
 		// Add template fields that don't already exist
 		added := false
 		for fieldName, defaultValue := range fields {
@@ -387,7 +387,7 @@ func applyFieldTemplate(template string) (int, error) {
 				added = true
 			}
 		}
-		
+
 		if added {
 			if err := db.SavePlace(place); err != nil {
 				return count, fmt.Errorf("failed to update place %s: %w", place.ID, err)
@@ -395,6 +395,6 @@ func applyFieldTemplate(template string) (int, error) {
 			count++
 		}
 	}
-	
+
 	return count, nil
 }

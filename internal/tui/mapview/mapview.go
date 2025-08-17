@@ -56,12 +56,12 @@ func NewMapView(places []*models.Place, config MapConfig) *MapView {
 		Places:     places,
 		ShowLabels: config.ShowLabels,
 	}
-	
+
 	// Calculate center from places
 	if len(places) > 0 {
 		mv.CenterLat, mv.CenterLng = mv.calculateCenter()
 	}
-	
+
 	return mv
 }
 
@@ -70,7 +70,7 @@ func (mv *MapView) Render() string {
 	if len(mv.Places) == 0 {
 		return mv.renderEmpty()
 	}
-	
+
 	// Create map grid
 	grid := make([][]rune, mv.Height)
 	for i := range grid {
@@ -79,28 +79,28 @@ func (mv *MapView) Render() string {
 			grid[i][j] = ' '
 		}
 	}
-	
+
 	// Draw border
 	mv.drawBorder(grid)
-	
+
 	// Draw grid lines
 	mv.drawGrid(grid)
-	
+
 	// Place markers
 	markers := mv.createMarkers()
 	mv.placeMarkers(grid, markers)
-	
+
 	// Convert grid to string
 	result := mv.gridToString(grid)
-	
+
 	// Add labels if enabled
 	if mv.ShowLabels {
 		result += mv.renderLabels(markers)
 	}
-	
+
 	// Add info panel
 	result += mv.renderInfo()
-	
+
 	return result
 }
 
@@ -109,13 +109,13 @@ func (mv *MapView) calculateCenter() (lat, lng float64) {
 	if len(mv.Places) == 0 {
 		return 0, 0
 	}
-	
+
 	var sumLat, sumLng float64
 	for _, place := range mv.Places {
 		sumLat += place.Coordinates.Lat
 		sumLng += place.Coordinates.Lng
 	}
-	
+
 	return sumLat / float64(len(mv.Places)), sumLng / float64(len(mv.Places))
 }
 
@@ -124,14 +124,14 @@ func (mv *MapView) getBounds() BoundingBox {
 	if len(mv.Places) == 0 {
 		return BoundingBox{}
 	}
-	
+
 	bounds := BoundingBox{
 		MinLat: mv.Places[0].Coordinates.Lat,
 		MaxLat: mv.Places[0].Coordinates.Lat,
 		MinLng: mv.Places[0].Coordinates.Lng,
 		MaxLng: mv.Places[0].Coordinates.Lng,
 	}
-	
+
 	for _, place := range mv.Places {
 		if place.Coordinates.Lat < bounds.MinLat {
 			bounds.MinLat = place.Coordinates.Lat
@@ -146,7 +146,7 @@ func (mv *MapView) getBounds() BoundingBox {
 			bounds.MaxLng = place.Coordinates.Lng
 		}
 	}
-	
+
 	return bounds
 }
 
@@ -154,40 +154,40 @@ func (mv *MapView) getBounds() BoundingBox {
 func (mv *MapView) coordToScreen(lat, lng float64) Point {
 	// Calculate the scale based on zoom level
 	scale := math.Pow(2, float64(mv.ZoomLevel-10))
-	
+
 	// Mercator projection
 	x := (lng - mv.CenterLng) * scale
 	y := (mv.CenterLat - lat) * scale * 0.5 // Adjust for aspect ratio
-	
+
 	// Convert to screen coordinates
 	screenX := int(x*float64(mv.Width)/4) + mv.Width/2
 	screenY := int(y*float64(mv.Height)/2) + mv.Height/2
-	
+
 	return Point{X: screenX, Y: screenY}
 }
 
 // createMarkers creates markers for all places
 func (mv *MapView) createMarkers() []PlaceMarker {
 	var markers []PlaceMarker
-	
+
 	// Group places by screen position for clustering
 	positionMap := make(map[Point][]*models.Place)
-	
+
 	for _, place := range mv.Places {
 		point := mv.coordToScreen(place.Coordinates.Lat, place.Coordinates.Lng)
-		
+
 		// Only include points within bounds
 		if point.X >= 0 && point.X < mv.Width && point.Y >= 0 && point.Y < mv.Height {
 			positionMap[point] = append(positionMap[point], place)
 		}
 	}
-	
+
 	// Create markers for each position
 	for point, places := range positionMap {
 		marker := mv.createMarkerForPosition(point, places)
 		markers = append(markers, marker)
 	}
-	
+
 	return markers
 }
 
@@ -198,7 +198,7 @@ func (mv *MapView) createMarkerForPosition(point Point, places []*models.Place) 
 		place := places[0]
 		symbol := mv.getMarkerSymbol(place)
 		label := mv.getMarkerLabel(place)
-		
+
 		return PlaceMarker{
 			Place:  place,
 			Point:  point,
@@ -206,11 +206,11 @@ func (mv *MapView) createMarkerForPosition(point Point, places []*models.Place) 
 			Label:  label,
 		}
 	}
-	
+
 	// Multiple places - use cluster marker
 	symbol := mv.getClusterSymbol(len(places))
 	label := fmt.Sprintf("%d places", len(places))
-	
+
 	// Use the first place as representative
 	return PlaceMarker{
 		Place:  places[0],
@@ -247,7 +247,7 @@ func (mv *MapView) getMarkerSymbol(place *models.Place) string {
 			return "🌳"
 		}
 	}
-	
+
 	// Default marker
 	return "📍"
 }
@@ -287,7 +287,7 @@ func (mv *MapView) drawBorder(grid [][]rune) {
 			grid[mv.Height-1][x] = '─'
 		}
 	}
-	
+
 	// Left and right borders
 	for y := 1; y < mv.Height-1; y++ {
 		grid[y][0] = '│'
@@ -299,7 +299,7 @@ func (mv *MapView) drawBorder(grid [][]rune) {
 func (mv *MapView) drawGrid(grid [][]rune) {
 	// Draw sparse grid lines
 	gridSpacing := 8
-	
+
 	// Vertical grid lines
 	for x := gridSpacing; x < mv.Width-1; x += gridSpacing {
 		for y := 1; y < mv.Height-1; y++ {
@@ -308,7 +308,7 @@ func (mv *MapView) drawGrid(grid [][]rune) {
 			}
 		}
 	}
-	
+
 	// Horizontal grid lines
 	for y := gridSpacing; y < mv.Height-1; y += gridSpacing {
 		for x := 1; x < mv.Width-1; x++ {
@@ -325,8 +325,8 @@ func (mv *MapView) drawGrid(grid [][]rune) {
 func (mv *MapView) placeMarkers(grid [][]rune, markers []PlaceMarker) {
 	for _, marker := range markers {
 		if marker.Point.X > 0 && marker.Point.X < mv.Width-1 &&
-		   marker.Point.Y > 0 && marker.Point.Y < mv.Height-1 {
-			
+			marker.Point.Y > 0 && marker.Point.Y < mv.Height-1 {
+
 			// Use first character of symbol
 			symbol := []rune(marker.Symbol)
 			if len(symbol) > 0 {
@@ -341,14 +341,14 @@ func (mv *MapView) placeMarkers(grid [][]rune, markers []PlaceMarker) {
 // gridToString converts the grid to a string
 func (mv *MapView) gridToString(grid [][]rune) string {
 	var builder strings.Builder
-	
+
 	for _, row := range grid {
 		for _, char := range row {
 			builder.WriteRune(char)
 		}
 		builder.WriteRune('\n')
 	}
-	
+
 	return builder.String()
 }
 
@@ -357,10 +357,10 @@ func (mv *MapView) renderLabels(markers []PlaceMarker) string {
 	if len(markers) == 0 {
 		return ""
 	}
-	
+
 	var builder strings.Builder
 	builder.WriteString("\nPlaces shown:\n")
-	
+
 	// Sort markers by Y position for consistent display
 	sort.Slice(markers, func(i, j int) bool {
 		if markers[i].Point.Y == markers[j].Point.Y {
@@ -368,7 +368,7 @@ func (mv *MapView) renderLabels(markers []PlaceMarker) string {
 		}
 		return markers[i].Point.Y < markers[j].Point.Y
 	})
-	
+
 	for i, marker := range markers {
 		if i >= 10 { // Limit to 10 labels
 			builder.WriteString(fmt.Sprintf("... and %d more\n", len(markers)-i))
@@ -376,14 +376,14 @@ func (mv *MapView) renderLabels(markers []PlaceMarker) string {
 		}
 		builder.WriteString(fmt.Sprintf("%s %s\n", marker.Symbol, marker.Label))
 	}
-	
+
 	return builder.String()
 }
 
 // renderInfo generates info panel
 func (mv *MapView) renderInfo() string {
 	bounds := mv.getBounds()
-	
+
 	return fmt.Sprintf(`
 Map Info:
   Center: %.4f, %.4f
@@ -423,11 +423,11 @@ func (mv *MapView) centerText(text string, width int) string {
 	if len(text) >= width {
 		return text[:width]
 	}
-	
+
 	padding := width - len(text)
 	leftPad := padding / 2
 	rightPad := padding - leftPad
-	
+
 	return strings.Repeat(" ", leftPad) + text + strings.Repeat(" ", rightPad)
 }
 
@@ -469,20 +469,20 @@ func (mv *MapView) FitBounds() {
 	if len(mv.Places) == 0 {
 		return
 	}
-	
+
 	bounds := mv.getBounds()
-	
+
 	// Set center to bounds center
 	mv.CenterLat = (bounds.MinLat + bounds.MaxLat) / 2
 	mv.CenterLng = (bounds.MinLng + bounds.MaxLng) / 2
-	
+
 	// Calculate appropriate zoom level
 	latSpan := bounds.MaxLat - bounds.MinLat
 	lngSpan := bounds.MaxLng - bounds.MinLng
-	
+
 	// Use larger span to determine zoom
 	maxSpan := math.Max(latSpan, lngSpan)
-	
+
 	// Calculate zoom level (rough approximation)
 	if maxSpan > 10 {
 		mv.ZoomLevel = 6

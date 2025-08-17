@@ -152,7 +152,11 @@ var tagsDeleteCmd = &cobra.Command{
 		if !tagsForce {
 			fmt.Printf("This will remove tag '%s' from %d places. Continue? (y/N): ", tag, count)
 			var response string
-			fmt.Scanln(&response)
+			if _, err := fmt.Scanln(&response); err != nil {
+				// Treat any error (including EOF) as "no"
+				fmt.Println("Cancelled")
+				return nil
+			}
 
 			if strings.ToLower(response) != "y" && strings.ToLower(response) != "yes" {
 				fmt.Println("Cancelled")

@@ -18,22 +18,22 @@ type AppleImporter struct{}
 
 // KML structures for parsing Apple Maps exports
 type KML struct {
-	XMLName   xml.Name    `xml:"kml"`
-	Document  KMLDocument `xml:"Document"`
+	XMLName    xml.Name       `xml:"kml"`
+	Document   KMLDocument    `xml:"Document"`
 	Placemarks []KMLPlacemark `xml:"Document>Placemark"`
 }
 
 type KMLDocument struct {
-	Name        string        `xml:"name"`
-	Placemarks  []KMLPlacemark `xml:"Placemark"`
+	Name       string         `xml:"name"`
+	Placemarks []KMLPlacemark `xml:"Placemark"`
 }
 
 type KMLPlacemark struct {
-	Name        string      `xml:"name"`
-	Description string      `xml:"description"`
-	Point       KMLPoint    `xml:"Point"`
-	Address     string      `xml:"address"`
-	PhoneNumber string      `xml:"phoneNumber"`
+	Name         string          `xml:"name"`
+	Description  string          `xml:"description"`
+	Point        KMLPoint        `xml:"Point"`
+	Address      string          `xml:"address"`
+	PhoneNumber  string          `xml:"phoneNumber"`
 	ExtendedData KMLExtendedData `xml:"ExtendedData"`
 }
 
@@ -52,8 +52,8 @@ type KMLData struct {
 
 // GPX structures for parsing GPX files
 type GPX struct {
-	XMLName    xml.Name    `xml:"gpx"`
-	Waypoints  []GPXWaypoint `xml:"wpt"`
+	XMLName   xml.Name      `xml:"gpx"`
+	Waypoints []GPXWaypoint `xml:"wpt"`
 }
 
 type GPXWaypoint struct {
@@ -114,7 +114,7 @@ func (ai *AppleImporter) parseKML(data []byte) ([]*models.Place, error) {
 	}
 
 	var places []*models.Place
-	
+
 	// Handle placemarks directly under document
 	for _, placemark := range kml.Document.Placemarks {
 		place := ai.convertKMLPlacemark(placemark)
@@ -122,7 +122,7 @@ func (ai *AppleImporter) parseKML(data []byte) ([]*models.Place, error) {
 			places = append(places, place)
 		}
 	}
-	
+
 	// Handle placemarks at root level
 	for _, placemark := range kml.Placemarks {
 		place := ai.convertKMLPlacemark(placemark)
@@ -163,10 +163,10 @@ func (ai *AppleImporter) convertKMLPlacemark(placemark KMLPlacemark) *models.Pla
 	}
 
 	// Generate unique IDs
-	sourceData := fmt.Sprintf("apple|%s|%s|%f,%f", 
-		placemark.Name, 
+	sourceData := fmt.Sprintf("apple|%s|%s|%f,%f",
+		placemark.Name,
 		placemark.Address,
-		coords.Lat, 
+		coords.Lat,
 		coords.Lng)
 	sourceHash := fmt.Sprintf("%x", sha256.Sum256([]byte(sourceData)))
 	placeID := fmt.Sprintf("apple_%s", sourceHash[:16])
@@ -215,10 +215,10 @@ func (ai *AppleImporter) convertGPXWaypoint(waypoint GPXWaypoint) *models.Place 
 	}
 
 	// Generate unique IDs
-	sourceData := fmt.Sprintf("gpx|%s|%s|%f,%f", 
-		waypoint.Name, 
+	sourceData := fmt.Sprintf("gpx|%s|%s|%f,%f",
+		waypoint.Name,
 		waypoint.Desc,
-		coords.Lat, 
+		coords.Lat,
 		coords.Lng)
 	sourceHash := fmt.Sprintf("%x", sha256.Sum256([]byte(sourceData)))
 	placeID := fmt.Sprintf("gpx_%s", sourceHash[:16])
@@ -265,7 +265,7 @@ func (ai *AppleImporter) parseCoordinates(coordStr string) models.Coordinates {
 
 	lng, err1 := strconv.ParseFloat(parts[0], 64)
 	lat, err2 := strconv.ParseFloat(parts[1], 64)
-	
+
 	if err1 != nil || err2 != nil {
 		return models.Coordinates{}
 	}
@@ -275,25 +275,25 @@ func (ai *AppleImporter) parseCoordinates(coordStr string) models.Coordinates {
 
 func (ai *AppleImporter) extractCategories(placemark KMLPlacemark) []string {
 	var categories []string
-	
+
 	// Look for category information in extended data
 	for _, data := range placemark.ExtendedData.Data {
-		if strings.ToLower(data.Name) == "category" || 
-		   strings.ToLower(data.Name) == "type" {
+		if strings.ToLower(data.Name) == "category" ||
+			strings.ToLower(data.Name) == "type" {
 			if data.Value != "" {
 				categories = append(categories, data.Value)
 			}
 		}
 	}
-	
+
 	// If no categories found, try to infer from name or description
 	if len(categories) == 0 {
 		if strings.Contains(strings.ToLower(placemark.Name), "restaurant") ||
-		   strings.Contains(strings.ToLower(placemark.Description), "restaurant") {
+			strings.Contains(strings.ToLower(placemark.Description), "restaurant") {
 			categories = append(categories, "Restaurant")
 		}
 	}
-	
+
 	return categories
 }
 

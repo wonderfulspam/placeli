@@ -22,58 +22,58 @@ type FoursquareExport struct {
 
 // FoursquareCheckin represents a single check-in from Foursquare/Swarm
 type FoursquareCheckin struct {
-	ID           string             `json:"id"`
-	CreatedAt    int64              `json:"createdAt"`
-	Type         string             `json:"type"`
-	TimeZone     string             `json:"timeZone"`
-	Venue        FoursquareVenue    `json:"venue"`
-	Photos       []FoursquarePhoto  `json:"photos"`
-	Comments     string             `json:"comments"`
-	Source       FoursquareSource   `json:"source"`
+	ID        string            `json:"id"`
+	CreatedAt int64             `json:"createdAt"`
+	Type      string            `json:"type"`
+	TimeZone  string            `json:"timeZone"`
+	Venue     FoursquareVenue   `json:"venue"`
+	Photos    []FoursquarePhoto `json:"photos"`
+	Comments  string            `json:"comments"`
+	Source    FoursquareSource  `json:"source"`
 }
 
 // FoursquareVenue represents venue information
 type FoursquareVenue struct {
-	ID         string                   `json:"id"`
-	Name       string                   `json:"name"`
-	Contact    FoursquareContact        `json:"contact"`
-	Location   FoursquareLocation       `json:"location"`
-	Categories []FoursquareCategory     `json:"categories"`
-	URL        string                   `json:"url"`
-	Stats      FoursquareStats          `json:"stats"`
-	Rating     float64                  `json:"rating"`
-	Price      FoursquarePrice          `json:"price"`
+	ID         string               `json:"id"`
+	Name       string               `json:"name"`
+	Contact    FoursquareContact    `json:"contact"`
+	Location   FoursquareLocation   `json:"location"`
+	Categories []FoursquareCategory `json:"categories"`
+	URL        string               `json:"url"`
+	Stats      FoursquareStats      `json:"stats"`
+	Rating     float64              `json:"rating"`
+	Price      FoursquarePrice      `json:"price"`
 }
 
 // FoursquareContact represents contact information
 type FoursquareContact struct {
-	Phone       string `json:"phone"`
+	Phone          string `json:"phone"`
 	FormattedPhone string `json:"formattedPhone"`
-	Twitter     string `json:"twitter"`
-	Instagram   string `json:"instagram"`
-	Facebook    string `json:"facebook"`
+	Twitter        string `json:"twitter"`
+	Instagram      string `json:"instagram"`
+	Facebook       string `json:"facebook"`
 }
 
 // FoursquareLocation represents location information
 type FoursquareLocation struct {
-	Address     string  `json:"address"`
-	Lat         float64 `json:"lat"`
-	Lng         float64 `json:"lng"`
-	Distance    int     `json:"distance"`
-	PostalCode  string  `json:"postalCode"`
-	CC          string  `json:"cc"`
-	City        string  `json:"city"`
-	State       string  `json:"state"`
-	Country     string  `json:"country"`
+	Address          string   `json:"address"`
+	Lat              float64  `json:"lat"`
+	Lng              float64  `json:"lng"`
+	Distance         int      `json:"distance"`
+	PostalCode       string   `json:"postalCode"`
+	CC               string   `json:"cc"`
+	City             string   `json:"city"`
+	State            string   `json:"state"`
+	Country          string   `json:"country"`
 	FormattedAddress []string `json:"formattedAddress"`
 }
 
 // FoursquareCategory represents venue category
 type FoursquareCategory struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Primary bool  `json:"primary"`
-	Icon   FoursquareIcon `json:"icon"`
+	ID      string         `json:"id"`
+	Name    string         `json:"name"`
+	Primary bool           `json:"primary"`
+	Icon    FoursquareIcon `json:"icon"`
 }
 
 // FoursquareIcon represents category icon
@@ -98,12 +98,12 @@ type FoursquarePrice struct {
 
 // FoursquarePhoto represents check-in photos
 type FoursquarePhoto struct {
-	ID     string `json:"id"`
+	ID     string           `json:"id"`
 	Source FoursquareSource `json:"source"`
-	Prefix string `json:"prefix"`
-	Suffix string `json:"suffix"`
-	Width  int    `json:"width"`
-	Height int    `json:"height"`
+	Prefix string           `json:"prefix"`
+	Suffix string           `json:"suffix"`
+	Width  int              `json:"width"`
+	Height int              `json:"height"`
 }
 
 // FoursquareSource represents the source of data
@@ -197,10 +197,10 @@ func (fi *FoursquareImporter) convertFoursquareVenue(venue FoursquareVenue, chec
 	}
 
 	// Generate unique IDs
-	sourceData := fmt.Sprintf("foursquare|%s|%s|%f,%f", 
+	sourceData := fmt.Sprintf("foursquare|%s|%s|%f,%f",
 		venue.ID,
 		venue.Name,
-		coords.Lat, 
+		coords.Lat,
 		coords.Lng)
 	sourceHash := fmt.Sprintf("%x", sha256.Sum256([]byte(sourceData)))
 	placeID := fmt.Sprintf("4sq_%s", venue.ID)
@@ -223,12 +223,12 @@ func (fi *FoursquareImporter) convertFoursquareVenue(venue FoursquareVenue, chec
 		Photos:      fi.convertPhotos(checkin.Photos),
 		Reviews:     []models.Review{},
 		CustomFields: map[string]interface{}{
-			"imported_from":     "foursquare",
-			"import_date":       now.Format(time.RFC3339),
-			"foursquare_id":     venue.ID,
-			"checkins_count":    venue.Stats.CheckinsCount,
-			"users_count":       venue.Stats.UsersCount,
-			"tips_count":        venue.Stats.TipCount,
+			"imported_from":  "foursquare",
+			"import_date":    now.Format(time.RFC3339),
+			"foursquare_id":  venue.ID,
+			"checkins_count": venue.Stats.CheckinsCount,
+			"users_count":    venue.Stats.UsersCount,
+			"tips_count":     venue.Stats.TipCount,
 		},
 		CreatedAt:  now,
 		UpdatedAt:  now,
@@ -262,7 +262,7 @@ func (fi *FoursquareImporter) buildAddress(location FoursquareLocation) string {
 	if len(location.FormattedAddress) > 0 {
 		return strings.Join(location.FormattedAddress, ", ")
 	}
-	
+
 	var parts []string
 	if location.Address != "" {
 		parts = append(parts, location.Address)
@@ -279,7 +279,7 @@ func (fi *FoursquareImporter) buildAddress(location FoursquareLocation) string {
 	if location.Country != "" {
 		parts = append(parts, location.Country)
 	}
-	
+
 	return strings.Join(parts, ", ")
 }
 
